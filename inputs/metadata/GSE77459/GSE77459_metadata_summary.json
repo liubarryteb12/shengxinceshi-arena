@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "status": "success",
+  "dataset_id": "GSE77459",
+  "source_url": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE77459",
+  "matrix_path": "inputs/raw/GSE77459/metadata/GSE77459_series_matrix.txt.gz",
+  "raw_archive_path": "inputs/raw/GSE77459/GSE77459_RAW.tar",
+  "matrix_sha256": "aa0057c7be57e0b294526ee17f7beaa45623fcc7fa26fba704977387a331e8f4",
+  "raw_archive_sha256": "e505d5c7d7616463c0334b050f885f1dd5cdbe54f051a678faad9cc40cb55937",
+  "sample_count": 12,
+  "groups": {
+    "control": 6,
+    "case": 6
+  },
+  "platform": "GPL17692 / Affymetrix Human Gene 2.1 ST Array",
+  "organism": "Homo sapiens",
+  "raw_cel_members": 12,
+  "parser": "scripts/prepare_gse77459_metadata.py"
+}
