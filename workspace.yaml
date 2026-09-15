@@ -1,0 +1,50 @@
+schema_version: "1.0"
+workspace_id: ws_shengxinceshi_arena_20260916
+project_id: shengxinceshi_arena
+repo_name: shengxinceshi-arena
+repo_kind: local_git
+created_at: 2026-09-16
+timezone: Asia/Shanghai
+created_by: arena-agent
+status: initialized
+milestone: M1
+build_round: 1
+
+source_specifications:
+  directory: docs/source/
+  immutable: true
+  files:
+    - 总纲要.txt
+    - P1纲要.txt
+    - P2纲要.txt
+    - P3纲要.txt
+    - P4纲要.txt
+    - 工作安排提示词.txt
+
+execution:
+  backend: local
+  github_actions:
+    enabled: false
+    repo: null
+    branch: main
+    workflow: .github/workflows/end_to_end_validation.yml
+
+rules:
+  inputs_readonly: true
+  cache_rebuildable: true
+  results_preserved: true
+  three_state_verdict: true
+  no_unverified_journal_facts: true
+  mutation_required_for_a_rules: true
+
+rounds:
+  current: 1
+  next: 2
+  completed:
+    - round: 1
+      status: in_progress
+      deliverable: skeleton_and_contracts
+  pending:
+    - round: 2
+      status: pending
+      deliverable: p1_minimum_closed_loop

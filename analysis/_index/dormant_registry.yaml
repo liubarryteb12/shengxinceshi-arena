@@ -1,0 +1,15 @@
+schema_version: "1.0"
+status: active
+dormant:
+  - id: B4
+    rule: WB 全膜原图
+    reason: 尚未确定是否涉及 western blot
+    activate_when: 分析模块含 western_blot
+  - id: B6
+    rule: Reporting Summary
+    reason: 目标期刊尚未确定
+    activate_when: target_journal 属于 Nature 系
+  - id: B9
+    rule: 数据可用性登录号
+    reason: 尚未确认数据类型
+    activate_when: 数据包含 sequencing

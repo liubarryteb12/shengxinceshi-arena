@@ -1,0 +1,1261 @@
+# P2 SCI 写作 Agent 工作流 工程规范
+
+> 版本：1.1
+> 定位：读 P1 证据 + 读 P4-a 期刊方向 + 读用户定制需求 → 产出符合目标期刊的 SCI 稿件 → 交给 P3 排版
+> 核心纪律：叙事按需定制，排版做扎实；能构造 FAIL 的才内化
+
+---
+
+## 目录
+
+1. 总览
+2. P2 输入接口
+3. L0/L1/L2 三级输出
+4. 定制需求清单 8 项
+5. WP-1~9 九节点
+6. NC-1~7 叙事约束
+7. 结构序 S1 / S2-a / S2-b / S2-c
+8. 声明块 8 项
+9. 证据边界与措辞纪律
+10. 图表位置纪律
+11. 参考文献管理
+12. 六社差异速查
+13. 报告规范清单
+14. Title Page 与 Cover Letter
+15. Highlights / Graphical Abstract
+16. 图像完整性红线
+17. 一致性检查
+18. 多模型复审
+19. 修订机制
+20. P2 接口文件
+21. 消融实验设计
+22. 休眠登记
+23. 完整目录树
+24. 配置文件总览
+25. 用户干预点总览
+26. Agent 权限边界总览
+27. 规则总览
+
+---
+
+## 1. 总览
+
+### 1.1 P2 定位
+
+P2 不是"让 AI 代写论文"，而是：
+
+> 把 P1 的结构化证据，转成符合目标期刊要求的 SCI 稿件。
+
+核心输入是 P1 的接口文件 + P4-a 的期刊方向 + 用户定制需求。
+核心输出是给 P3 的稿件包和给 P4-b 的稿件质量信息。
+
+### 1.2 P2 在整体流程中的位置
+
+```text
+P4-a 题材初判
+  ↓ 期刊方向、写作约束
+P1 生信分析
+  ↓ p1_to_p2_evidence.yaml + handoff + 图表
+P2 SCI 写作
+  ↓ 稿件包
+P3 排版
+  ↓ 投稿包
+P4-b 成稿复审
+  ↓ 推荐期刊
+```
+
+### 1.3 P2 核心原则
+
+- 用户管方向和取舍，agent 管执行和记录。
+- 叙事按需定制，不替用户编故事。
+- 排版是重点，叙事是骨架，等需求。
+- 所有数字锚定 P1 台账。
+- 所有引用来自 BibTeX 库，不编造。
+- 主张强度 ≤ 证据上限。
+- 每条规则必须能构造 FAIL 用例，否则不立。
+
+### 1.4 P2 完整流程（初稿）
+
+```text
+读 P1 接口文件
+  ↓
+读 P4-a 期刊方向包
+  ↓
+读用户定制需求
+  ↓
+判断输出级别（L0/L1/L2）
+  ↓
+按级别执行：
+  ├── L0：一句话卖点 + 链条顺序 + 章节骨架标题
+  ├── L1：各节要点 + 图序与图注占位 + 主张-锚对应
+  └── L2：走 WP-1~9 九节点全量生成
+  ↓
+一致性检查（NC-1~7 + 数字 + 术语 + 逻辑）
+  ↓
+多模型复审
+  ↓
+修订
+  ↓
+生成 P2 接口文件
+  ↓
+交给 P3 和 P4-b
+```
+
+---
+
+## 2. P2 输入接口
+
+### 2.1 输入来源
+
+| 来源 | 输入 | 用途 |
+|---|---|---|
+| P1 | `p1_to_p2_evidence.yaml` | 主张、证据、图表、方法 |
+| P1 | `handoff.md` | 每步做了什么、能不能用 |
+| P1 | `figure_index.yaml` | 可用图表 |
+| P1 | `result_index.yaml` | 可用结果 |
+| P4-a | 期刊方向包 | 叙事、结构、字数、摘要形式 |
+| 用户 | 定制需求清单 8 项 | 个性化 |
+| 用户 | 已有模板、排版参数 | 约束 P3，也约束 P2 |
+
+### 2.2 输入检查
+
+agent 在开始写作前，必须检查：
+
+| 检查项 | 失败动作 |
+|---|---|
+| P1 接口文件存在 | 报用户，要求先跑 P1 |
+| 至少 1 条 evidence | 报用户，证据不足 |
+| 至少 1 张图 | 报用户，图件不足 |
+| P4-a 期刊方向包存在 | 报用户，或退化为 L0 |
+| 用户定制需求清单 | 未填则退化为 L0/L1 |
+
+### 2.3 P2 配置
+
+文件：`02_writing/p2_config.yaml`
+
+```yaml
+project_id: project_001
+target_journal: null
+target_publisher: null
+output_level: L0          # L0 / L1 / L2
+story_type: null          # data-driven / hypothesis-led / methodological
+evidence_boundary: null   # 相关 / 提示 / 候选 / 已证实
+figure_limit: null
+audience: null            # 临床 / 生信 / 交叉
+language: en
+spelling: american        # american / british
+structure: S1             # S1 / S2-a / S2-b / S2-c
+customization: null       # 8 项定制需求清单
+```
+
+---
+
+## 3. L0/L1/L2 三级输出
+
+### 3.1 三级定义
+
+| 级别 | 触发条件 | 交付到什么程度 | 允许写多深 |
+|---|---|---|---|
+| **L0 方向** | 用户未给需求（默认） | 一句话卖点 + 链条顺序 + 章节骨架标题 | 只到标题/一段话，**不写正文** |
+| **L1 骨架** | 给了研究问题/终点/期刊 | 各节要点 + 图序与图注占位 + 主张-锚对应 | 每节要点 3–5 条，不铺陈 |
+| **L2 定制成稿** | 给了《定制需求清单》全项 | 按期刊模板的成稿（走 WP-1~9） | 全量，受 NC-1~7 约束 |
+
+### 3.2 默认动作
+
+> 缺需求时出 L0/L1，并在交付物顶部标明级别与"待定制项"。**不得**在没有需求的情况下自行判定期刊定位、故事线风格或主张强度。
+
+### 3.3 输出标记
+
+每个交付物顶部标：
+
+```markdown
+> 输出级别：L1
+> 待定制项：目标期刊、故事线偏好、证据边界、图数上限
+> 下一步：用户填完 8 项定制需求后升 L2
+```
+
+---
+
+## 4. 定制需求清单 8 项
+
+### 4.1 清单
+
+问了才升 L2。
+
+1. **研究问题/卖点**：一句话主张是什么（预后模型？机制提示？方法学贡献？）
+2. **目标期刊与栏目**：决定字数/图数/参考文献上限与版式
+3. **故事线偏好**：发现型（data-driven）/ 验证型（hypothesis-led）/ 方法学型
+4. **证据边界**：允许写到什么强度（相关 / 提示 / 候选 / 已证实）
+5. **图数上限与正文/补充分配**
+6. **受众**：临床 / 生信 / 交叉
+7. **必须包含/必须回避的内容**（合作方要求、伦理表述、单位署名等）
+8. **篇幅与截止**：决定 L1→L2 的取舍顺序
+
+### 4.2 记录
+
+文件：`02_writing/p2_customization.yaml`
+
+```yaml
+customization_id: cust_20260915_160000
+timestamp: 2026-09-15T16:00:00+08:00
+filled_by: user
+complete: true
+
+items:
+  - key: research_question
+    value: 化合物 X 通过 PI3K/AKT 通路抑制 HCC 增殖
+  - key: target_journal
+    value: Biomedicine & Pharmacotherapy
+  - key: story_type
+    value: hypothesis-led
+  - key: evidence_boundary
+    value: 候选
+  - key: figure_limit
+    value: 8
+  - key: audience
+    value: 交叉
+  - key: must_include
+    value: 伦理声明、WB 原图
+  - key: must_avoid
+    value: 无
+  - key: deadline
+    value: 2026-10-01
+```
+
+---
+
+## 5. WP-1~9 九节点
+
+### 5.1 九节点顺序（**不可逆**）
+
+```text
+WP-0 素材就绪
+   ↓
+WP-CORE 逻辑链 P0–P4
+   ↓
+WP-4 方法 ─┐
+WP-5 结果 ─┼─► 四节定稿
+WP-6 讨论 ─┤
+WP-7 参考 ─┘
+   ↓
+WP-2 摘要（首句必须是 P1）
+   ↓
+WP-3 背景（调 research_survey_skill，防幻觉文献）
+   ↓
+WP-1 标题（最后定稿）
+   ↓
+WP-8 去 AI 味（初步过滤）
+   ↓
+WP-9 三格式导出
+```
+
+### 5.2 两处反惯例
+
+| 反惯例 | 理由 |
+|---|---|
+| 摘要在正文之后 | 防"先写摘要再让正文凑数"（NC-6 倒挂） |
+| 标题在最后 | 防"标题先定、正文向标题凑"（T1.1 越界） |
+
+### 5.3 各节点判据
+
+#### WP-0 素材就绪
+
+| # | 判据 | 检测 |
+|---|---|---|
+| 0.1 | P1 接口文件存在 | 文件检查 |
+| 0.2 | 至少 1 条 evidence | 计数 |
+| 0.3 | 至少 1 张图 | 计数 |
+| 0.4 | 参考文献库存在 | 文件检查 |
+
+#### WP-CORE 逻辑链 P0–P4
+
+| 项 | 说明 |
+|---|---|
+| P0 | 背景问题 |
+| P1 | 主发现（唯一，不可多） |
+| P2 | 支撑证据 |
+| P3 | 局限 |
+| P4 | 展望 |
+
+P1 必须唯一，是全文主线。摘要首句、讨论首段首句、标题都基于 P1。
+
+#### WP-1 标题
+
+| # | 判据 | 检测 | 变异用例 |
+|---|---|---|---|
+| 1.1 | 无升级词（首次/揭示/阐明/驱动/机制/证明/证实） | 词表 | 加"揭示" |
+| 1.2 | 无信息词（研究/分析/探索/初探/浅析） | 词表 | 加"的研究" |
+| 1.4 | 中文 ≤25 字 / 英文 ≤20 词 | 字符/词数 | 加长 |
+| 1.6 | 含研究对象 + 主要发现 | 结构 | 删对象 |
+
+#### WP-2 摘要
+
+| # | 判据 | 检测 | 变异用例 |
+|---|---|---|---|
+| 2.1 | 首句 == P1 | 比对 | 改首句 |
+| 2.2 | 结构四段齐（背景/方法/结果/结论） | 段落扫描 | 删结论段 |
+| 2.3 | 字数 ≤目标刊上限 | 字数 | 超 100 字 |
+| 2.6 | 末句含边界词 | 词表 | 删边界句 |
+| 2.7 | 含 n 与事件数 | 正则 | 删 n |
+
+#### WP-3 背景（★ 与 research skill 的接口）
+
+**接口定义**：
+
+```yaml
+research_survey_skill:
+  input: topic_keywords · field · year_range · max_results
+  output: papers[{DOI,title,authors,journal,year}] + coverage_report
+  failure:
+    - 未调用 → WP-3 拒入
+    - 返回 0 篇 → 判 N/A（第三态），不降级为 AI 生成
+```
+
+| # | 判据 | 检测 | 变异用例 |
+|---|---|---|---|
+| 3.1 | 已调用 skill 并有留痕 | 文件检查 | 删留痕 |
+| 3.2 | 引言引用 ∈ skill 输出集合 | 比对 | 加幻觉引用 |
+| 3.4 | 含 gap statement（然而/尚未/目前缺乏/仍不清楚） | 词表 | 删 gap |
+
+#### WP-4 方法
+
+| # | 判据 | 阈值 | 变异用例 |
+|---|---|---|---|
+| 4.1 | 版本/批号 | `v?\d+\.\d+` 或"批号" | 删版本 |
+| 4.3 | 统计含单/双侧 + 多重校正 | 词表 | 删双侧 |
+| 4.7 | 数据共享登录号 | `GSE\d+\|SRR\d+\|DOI` | 删登录号 |
+
+#### WP-5 结果（拆 4 子块）
+
+**WP-5a 文字**：
+
+| # | 判据 | 检测 | 变异用例 |
+|---|---|---|---|
+| 5a.1 | 每个"显著"**同句内**有 `[L-xxx]` | 句内扫描 | 删锚 |
+| 5a.2 | 不含机制词（除讨论） | 词表 | 加机制词 |
+| 5a.3 | 阴性结果显式出现 | 词表 | 删阴性 |
+
+**WP-5b 排版**：
+
+| # | 判据 | 检测 | 变异用例 |
+|---|---|---|---|
+| 5b.1 | 图号连续无缺 | 序列 | 跳号 |
+| 5b.2 | 表号连续无缺 | 序列 | 跳号 |
+| 5b.3 | 先引用后出现 | 位置比对 | 图先出现 |
+| 5b.4 | 引用段与图 ≤3 段 | 段落距离 | 改 5 段 |
+
+**WP-5c 图注**：
+
+| # | 判据 | 检测 | 变异用例 |
+|---|---|---|---|
+| 5c.1 | 含精确 n | 正则 | 删 n= |
+| 5c.2 | 含误差棒 + 中心度量 | 词表 | 删 SD/SEM |
+| 5c.3 | 含检验方法 | 词表 | 删 ANOVA |
+| 5c.4 | 含比例尺（显微图） | 正则 | 删 scale bar |
+| 5c.5 | 含缩写定义 | 词表 | 删缩写 |
+| 5c.6 | ≤300 词（BMC）/ ≤250 字（Nature） | 字数 | 超限 |
+
+**WP-5d 图题**：
+
+| # | 判据 | 检测 | 变异用例 |
+|---|---|---|---|
+| 5d.1 | 无信息词黑名单 | 词表 | 加"主要结果" |
+| 5d.2 | ≤15 字（BMC）/ ≤20 词 | 字数 | 超限 |
+| 5d.3 | ≠ 图注首句 | 比对 | 设成一样 |
+| 5d.4 | 图题数 == 图号数 | 计数 | 加一个 |
+
+#### WP-6 讨论
+
+| # | 判据 | 检测 | 变异用例 |
+|---|---|---|---|
+| 6.1 | 首段首句 == P1 | 比对 | 改首段 |
+| 6.2 | 含局限性（P3） | 小标题扫描 | 删 Limitations |
+| 6.3 | 含展望（P4） | 词表 | 删展望 |
+| 6.4 | 机制词**同句内**有 `(L\d)` 标注 | 句内扫描 | 删标注 |
+
+#### WP-7 参考文献
+
+| # | 判据 | 检测 | 变异用例 |
+|---|---|---|---|
+| 7c.1a | 无"用而未引" | 正文 ⊆ 列表 | 正文引 [99] 无 |
+| 7c.1b | 无"引而未用" | 列表 ⊆ 正文 | 列表有 [20] 无引用 |
+| 7b.2 | 每条含 DOI/PMID | 正则 | 删 DOI |
+| 7b.3 | 编号连续无跳号 | 序列 | 跳 [99] |
+
+#### WP-8 去 AI 味（**只是过滤，不追求完全去除**）
+
+| # | 判据 | 阈值 | 变异用例 |
+|---|---|---|---|
+| 8.1 | 模板句式（随着…的发展/近年来） | 0 出现 | 加模板句 |
+| 8.2 | 空洞表达（具有重要意义/发挥关键作用） | 0 出现 | 加空洞句 |
+| 8.3 | 过渡词密度（然而/因此/此外） | ≤3/千字 | 超限 |
+| 8.4 | 段落长度标准差 | ≥30 字（待校准） | 改均匀 |
+| 8.9 | 元话语密度（值得注意的是） | ≤1/千字 | 超限 |
+
+#### WP-9 三格式导出
+
+| 输出 | 内容 | 用途 |
+|---|---|---|
+| **docx-A** | 纯文本 + `[图N位置]` 占位符 | 编辑修改 |
+| **docx-B** | 纯图片 + 图注/表注 | 排版核对 |
+| **pdf** | 文图合一 | 投稿审阅 |
+
+| # | 判据 | 检测 | 变异用例 |
+|---|---|---|---|
+| 9.1 | 三版本图号集合一致 | 集合比对 | 改图号 |
+| 9.2 | docx-A 占位符数 == docx-B 图表数 | 计数 | 改数量 |
+| 9.3 | docx-B 图注 ⊂ pdf（逐字） | 逐字比对 | 改图注 |
+| 9.5 | 三版本参考文献逐字一致 | 逐字比对 | 改文献 |
+| 9.6 | 图片 ≥300 dpi | 元数据 | 降 150 |
+
+---
+
+## 6. NC-1~7 叙事约束
+
+### 6.1 七条约束
+
+| 编号 | 检查 | 落点 | 检测 | 变异用例 |
+|---|---|---|---|---|
+| **NC-1** 悬空问题 | 引言问句 → 讨论有回应 | WP-3 / WP-6 | 句对匹配 | 删回应 |
+| **NC-2** 孤证结论 | P1 支撑证据 ≥2 | WP-CORE / WP-6 | 计数 | 删至 1 条 |
+| **NC-3** 倒挂 | 讨论首段 = P1 | WP-6.1 | 比对 | 改首段 |
+| **NC-4** 平行叙事 | 结果间有递进连接词 | WP-5a | 词表 | 删连接词 |
+| **NC-5** 图文脱节 | "如图 X" 后有目的词 | WP-5a/b | 词表 | 删目的词 |
+| **NC-6** 摘要双头 | 摘要首句 = P1 | WP-2.1 | 比对 | 改首句 |
+| **NC-7** 新发现注入 | 讨论引用 ⊆ 结果引用 | WP-6 | 集合比对 | 加新引用 |
+
+### 6.2 对称守卫
+
+**NC-3 与 NC-6 是同一约束的两次检查**（P1 同时是摘要首句与讨论首段首句）。
+
+两处必须一致，任何一处改 P1，另一处必须同步。不一致 → FAIL。
+
+---
+
+## 7. 结构序 S1 / S2-a / S2-b / S2-c
+
+### 7.1 四种合法结构
+
+**S1 默认序（BMC 系，无独立 Conclusions）**：
+
+```
+题录页 → 结构式摘要 → 关键词 →
+引言 → 材料与方法 → 结果 → 讨论 → 声明 → 参考文献
+```
+
+**S2-a（含独立 Conclusions，Elsevier/Springer/MDPI 常见）**：
+
+```
+题录页 → 结构式摘要 → 关键词 →
+引言 → 材料与方法 → 结果 → 讨论 → Conclusions → 声明 → 参考文献
+```
+
+**S2-b（结果与讨论合并）**：
+
+```
+题录页 → 结构式摘要 → 关键词 →
+引言 → 材料与方法 → Results and Discussion → 声明 → 参考文献
+```
+
+**S2-c（结论节置于讨论之前）**：
+
+```
+题录页 → 结构式摘要 → 关键词 →
+引言 → 材料与方法 → 结果 → Conclusions → 讨论 → 声明 → 参考文献
+```
+
+### 7.2 结构序判定规则（机器可检）
+
+| 检查 | 判定 | 变异用例 |
+|---|---|---|
+| 节序串 ∈ {S1, S2-a, S2-b, S2-c} | 自动 | 加非法序 |
+| 摘要四段标签齐 + P1 首句 | 自动 | 删结论段 |
+| 关键词 3–8 个、分号分隔 | 自动 | 改 2 个 |
+| 声明 8 项小标题齐 | 自动 | 删声明项 |
+| 图注自明四要素 | 自动 | 删要素 |
+
+### 7.3 目标期刊选择
+
+| 社 | 默认结构序 |
+|---|---|
+| Elsevier | S2-a |
+| Springer | S2-a |
+| BMC | S1 |
+| Nature 系 | S2-a（方法在参考文献后，特殊） |
+| Wiley | S2-a |
+| Frontiers | S2-a |
+| MDPI | S2-a |
+
+**规则**：投稿前必须核对目标期刊 Guide for Authors。
+
+---
+
+## 8. 声明块 8 项
+
+### 8.1 八项清单
+
+1. Ethics approval and consent to participate
+2. Consent for publication
+3. Availability of data and materials
+4. Competing interests
+5. Funding
+6. Authors' contributions（CRediT）
+7. Acknowledgements
+8. Declaration of generative AI use
+
+### 8.2 位置
+
+正文之后、参考文献之前。
+
+### 8.3 六社差异
+
+| 社 | 特色声明 | 位置 |
+|---|---|---|
+| Elsevier | CRediT 必填；Declaration of competing interest；Data availability | 正文后 |
+| Springer | 致谢、基金、利益冲突放**标题页** | 标题页 |
+| BMC | **8 个子标题全列，不适用写 Not applicable** | Declarations |
+| Nature 系 | 单独 Data availability + Code availability；生命科学必交 **Reporting Summary** | 参考文献后 |
+| Frontiers | Data Availability / Ethics Statement / Author Contributions / Funding / Conflict of Interest / Generative AI / Publisher's Note | 文末 |
+| MDPI | Author Contributions / Funding / IRB Statement / Informed Consent / Data Availability / Acknowledgments / Conflicts of Interest | 文末 |
+
+### 8.4 BMC 硬规则
+
+> 所有子标题必须出现，**不适用也要写 "Not applicable"**。
+
+### 8.5 检测
+
+| # | 判据 | 检测 | 变异用例 |
+|---|---|---|---|
+| D1 | 8 项齐全 | 小标题扫描 | 删 Data availability |
+| D2 | 不适用写 Not applicable | 词表 | 留空 |
+| D3 | AI 使用声明（如用了） | 关键词 | 删声明 |
+
+---
+
+## 9. 证据边界与措辞纪律
+
+### 9.1 证据等级 ↔ 主张上限
+
+| 证据等级 | 达成条件 | 主张上限 | 摘要可写 | 讨论可写 | 图注可写 |
+|---|---|---|---|---|---|
+| **候选** | 单次 discovery 支持 | L1 | "发现集中相关""提示""候选" | 可提假设与局限，不得谈泛化 | "探索性" |
+| **强化** | 内部稳健性/敏感性一致 | L1–L2 | "多种分析下稳健""正交支持" | 可讨论生物学含义，须带"待独立验证" | "探索性" |
+| **可转化候选** | 独立数据方向 + 区间满足 T14 | L2 | "方向一致""转化一致性" | 可比较、讨论边界，不得谈临床效用 | "非临床效用验证" |
+| **证据** | 功能/机制（L3）或临床效用（L4） | L3 / L4 | 仅针对具体主张 | 严格限定 | 标注实验类型 |
+
+### 9.2 贯穿硬规则
+
+> 图注强度 ≤ 正文强度 ≤ 摘要强度 ≤ 证据上限。
+
+任一处超标 → R5 回退，重算受影响文本与图注。
+
+### 9.3 措辞纪律表
+
+| 禁用 | 替代 |
+|---|---|
+| 外部验证 | 在独立数据集中**方向一致**；转化一致性 |
+| 验证了该标志物 | 该候选**方向得到重复** |
+| 诊断标志物 | 与目标状态相关的**候选标志物** |
+| 可用于临床诊断 | 判别表现为【待台账】,**尚需前瞻性验证** |
+| 机制阐明 / 驱动 / 调控 | **提示**涉及某程序；**计算扰动预测**可能参与 |
+| 显著改善临床决策 | 增量指标为【待台账】;决策意义**尚需**验证 |
+| 已证实结合 / 有效药物 | **候选优先级排序**;待实验验证的候选化合物 |
+| 首次发现 | 在本研究检索范围内未见报道 |
+| 结果稳健 / 所有分析均显著 | 在预注册的 5 项敏感性分析中，**M 项方向一致** |
+| X 导致 Y | X 与 Y 风险升高相关 |
+
+### 9.4 硬规则
+
+- 探索级结论**必须带限定词**（探索性 / 事后 / 待验证）。
+- **润色不得升级 claim**。
+- 升级即 R5 回退。
+
+### 9.5 检测
+
+| # | 判据 | 检测 | 变异用例 |
+|---|---|---|---|
+| W1 | 标题无升级词 | 词表 | 加"揭示" |
+| W2 | 标题无信息词 | 词表 | 加"研究" |
+| W3 | 标题长度 ≤上限 | 字符 | 加长 |
+| W4 | 措辞强度 ≤证据上限 | 分级映射 | 越界 |
+| W5 | 图注强度 ≤正文 ≤摘要 | 分级比对 | 越界 |
+| W6 | 探索级结论带限定词 | 词表 | 删限定 |
+| W7 | P 值精确值 | 正则 | 改 P<0.05 |
+| W8 | 数字锚定台账 | 同句 [L-xxx] | 删锚 |
+
+---
+
+## 10. 图表位置纪律
+
+### 10.1 规则
+
+| 项 | 规则 |
+|---|---|
+| 图题位置 | **图下** |
+| 表题位置 | **表上** |
+| 图注 | 独立成段，不贴在图上 |
+| 图件 | 不粘贴截图，图注必须是可编辑文本 |
+| 表格 | 原生 Word 表格，**无竖线、无底纹**（Elsevier） |
+| 图表位置 | 先引用后出现，靠近首次引用 |
+| 引用段与图 | ≤3 段 |
+
+### 10.2 检测
+
+| # | 判据 | 检测 | 变异用例 |
+|---|---|---|---|
+| G1 | 图号连续无缺 | 序列 | 跳号 |
+| G2 | 表号连续无缺 | 序列 | 跳号 |
+| G3 | 先引用后出现 | 位置比对 | 图先出现 |
+| G4 | 引用段与图 ≤3 段 | 段落距离 | 改 5 段 |
+| G5 | 图注含精确 n | 正则 | 删 n= |
+| G6 | 图注含误差线定义 | 词表 | 删 SD/SEM |
+| G7 | 图注含检验方法 | 词表 | 删 ANOVA |
+| G8 | 图注含比例尺 | 正则 | 删 scale bar |
+| G9 | 图注含缩写定义 | 词表 | 删缩写 |
+| G10 | 图注 ≤300 词 | 字数 | 超限 |
+| G11 | 图题 ≤15 词 | 字数 | 超限 |
+| G12 | 图题 ≠ 图注首句 | 比对 | 设成一样 |
+
+---
+
+## 11. 参考文献管理
+
+### 11.1 默认制式
+
+Vancouver 编号制（正文方括号连续编号）。
+
+### 11.2 各社差异
+
+| 社 | 制式 |
+|---|---|
+| Elsevier | 编号方括号 `[1]` |
+| Springer | 顺序编号 + DOI |
+| BMC | Vancouver（列前 6 位作者 + et al.） |
+| Nature 系 | **上标数字** |
+| Wiley | AMA / Vancouver |
+| Frontiers | Harvard / Vancouver |
+| MDPI | 编号方括号 `[1,2]` |
+
+### 11.3 管理工具
+
+EndNote / Zotero，导出前 **Convert to Plain Text** 去域代码。
+
+### 11.4 检测
+
+| # | 判据 | 检测 | 变异用例 |
+|---|---|---|---|
+| R1 | 制式 = 目标刊 | 正则 | 改格式 |
+| R2 | 编号连续无跳号 | 序列 | 跳 [99] |
+| R3 | 无"用而未引" | 正文 ⊆ 列表 | 正文引 [99] 无 |
+| R4 | 无"引而未用" | 列表 ⊆ 正文 | 列表有 [20] 无引用 |
+| R5 | 条目含 DOI/PMID | 正则 | 删 DOI |
+| R6 | 数量 ≤目标刊上限 | 计数 | 超限 |
+| R7 | 无撤稿文献 | 查询 | 注入撤稿文献 |
+| R8 | 期刊名缩写 LTWA/MEDLINE | 词表 | 改全称 |
+| R9 | 域代码已清除 | 搜 `fldChar` | 保留域代码 |
+
+---
+
+## 12. 六社差异速查
+
+### 12.1 摘要
+
+| 社 | 字数 | 结构 |
+|---|---|---|
+| Elsevier | ≤250 | 非结构化居多 |
+| Springer | 150–250 | 结构化 |
+| BMC | ≤350 | **必须结构化** |
+| Nature 系 | ≤200 | 单段 |
+| Wiley | ≤250 | 结构化 |
+| Frontiers | ≤350 | 单段 |
+| MDPI | ~200 | 单段 |
+
+### 12.2 关键词
+
+| 社 | 数量 |
+|---|---|
+| Elsevier | 1–7 |
+| Springer | 4–6 |
+| BMC | 3–10 |
+| Nature 系 | ≤6 |
+| Wiley | ≤7 |
+| Frontiers | 5–8 |
+| MDPI | 3–10 |
+
+### 12.3 标题
+
+| 社 | 限制 |
+|---|---|
+| Nature 主刊 | ≤75 字符 |
+| Scientific Reports | ≤20 词 |
+| Frontiers | 短标题 ≤5 词 |
+
+### 12.4 标题层级
+
+| 社 | 上限 |
+|---|---|
+| Elsevier | 编号 1/1.1/1.1.1 |
+| Springer | ≤3 级 |
+| BMC | 不编号 |
+| Nature 系 | 不编号 |
+| Frontiers | ≤5 级 |
+| MDPI | 编号 |
+
+### 12.5 篇幅
+
+| 社 | 正文字数 | 图表 | 参考文献 |
+|---|---|---|---|
+| Elsevier 生物医药 | 4000–7000 | ≤8 图 | 无硬性上限 |
+| Springer 普通医学 | 2500–4000 | 5 图 3 表 | 25–50 |
+| BMC | 无硬性上限 | 无硬性上限 | 无硬性上限 |
+| Nature 主刊 | 4300 词 | 5–6 | ≤50 |
+| Scientific Reports | ≤4500 | 不限 | 不限 |
+| Wiley | ≤3500 | ≤5 | <60 |
+| Frontiers | 8000–12000 | ≤15 | 不限 |
+| MDPI | 无硬性上限 | 不限 | 不限 |
+
+---
+
+## 13. 报告规范清单
+
+### 13.1 研究类型 ↔ 报告规范
+
+| 研究类型 | 必须遵循 |
+|---|---|
+| 随机对照试验 | **CONSORT** + 试验注册号 |
+| 观察性研究 | **STROBE** |
+| 系统评价 / Meta 分析 | **PRISMA 2020** + PROSPERO |
+| 诊断准确性研究 | **STARD** |
+| 预测模型 | **TRIPOD** |
+| 动物实验 | **ARRIVE 2.0** |
+| 病例报告 | **CARE** |
+| 性别/性别差异报告 | **SAGER** |
+| 生信/组学 | 数据登录号 + 代码可用性 |
+
+### 13.2 记录
+
+文件：`02_writing/p2_reporting_guidelines.yaml`
+
+```yaml
+study_type: animal_experiment
+guideline: ARRIVE 2.0
+checklist_file: 02_writing/checklists/arrive_2.0_checklist.pdf
+completed: true
+```
+
+---
+
+## 14. Title Page 与 Cover Letter
+
+### 14.1 Title Page 必含要素
+
+1. Title：简洁、信息量足、避免缩写和公式
+2. Running title：≤40 字符（Wiley）；Frontiers ≤5 词
+3. 作者全名：顺序与投稿系统一致
+4. 单位：科室/院系、机构、城市、邮编、国家
+5. 通讯作者：姓名、完整地址、E-mail、电话；建议附 ORCID
+6. 共同第一作者：星号 + "These authors contributed equally to this work"
+7. 字数统计：正文字数、摘要字数、图数、表数
+8. 盲审期刊：Title Page 单独上传
+
+### 14.2 Cover Letter
+
+必含：
+
+- 说明创新点
+- 符合期刊范围
+- 未一稿多投
+- 所有作者同意
+- 推荐/回避审稿人
+
+### 14.3 检测
+
+| # | 判据 | 检测 | 变异用例 |
+|---|---|---|---|
+| T1 | Title 长度 ≤上限 | 字数 | 超限 |
+| T2 | Running title 存在 | 结构 | 删 |
+| T3 | 通讯作者邮箱存在 | 正则 | 删 |
+| T4 | 字数统计存在 | 结构 | 删 |
+| T5 | Cover letter 存在 | 文件 | 删 |
+
+---
+
+## 15. Highlights / Graphical Abstract
+
+### 15.1 规格（Elsevier 可选）
+
+| 项 | 规格 |
+|---|---|
+| Highlights | 3–5 条，每条 **≤85 字符（含空格）**，单独文件 |
+| Graphical abstract | **531 × 1328 px（高 × 宽）** 或等比更大；5 × 13 cm 下可读；TIFF/EPS/PDF/Office |
+
+### 15.2 检测
+
+| # | 判据 | 检测 | 变异用例 |
+|---|---|---|---|
+| H1 | Highlights 条数 3–5 | 计数 | 改 2 条 |
+| H2 | 每条 ≤85 字符 | 字符 | 超限 |
+| H3 | GA 尺寸正确 | 元数据 | 改尺寸 |
+
+---
+
+## 16. 图像完整性红线
+
+### 16.1 允许
+
+- 全图线性亮度/对比度/色彩平衡调整
+- 裁剪（不为了删除相关数据）
+- 旋转、等比缩放
+- 伪彩用于灰度荧光图，须在图注说明
+
+### 16.2 禁止
+
+- 局部增强、遮盖、移动、删除或添加任何特征
+- 克隆图章、修复画笔、橡皮擦、内容识别填充
+- 过饱和/过度对比度
+- 不同凝胶/曝光/实验的条带拼接成"连续膜"而不标注
+- 同一图片重复使用（哪怕旋转/镜像）而不声明
+- 重复使用对照组图片/泳道于不同实验而不说明
+- **生成式 AI 生成或修改任何代表原始实验数据的图像**
+
+### 16.3 必须
+
+- 保留原始未处理文件（含元数据），投稿后至少保存 10 年
+- 所有非线性调整（gamma）在图注披露
+- 图注或方法中列出图像处理软件
+
+### 16.4 检测
+
+| # | 判据 | 检测 | 变异用例 |
+|---|---|---|---|
+| I1 | 无局部增强/擦除/移位 | 检测 | 注入局部调整 |
+| I2 | 亮度对比度全图统一 | 元数据 | 只调实验组 |
+| I3 | 无 AI 生成/修改数据图 | 声明扫描 | 加 AI 生成图 |
+| I4 | 保留原始文件 | 目录 | 删原始 |
+
+---
+
+## 17. 一致性检查
+
+### 17.1 三类检查
+
+| 类别 | 检查 | 检测 |
+|---|---|---|
+| 数字 | 正文数字 vs P1 台账 | 逐条比对 |
+| 术语 | 同一术语全文唯一 | 术语表比对 |
+| 逻辑 | NC-1~7 | 见 §6 |
+
+### 17.2 数字检查
+
+| # | 判据 | 检测 | 变异用例 |
+|---|---|---|---|
+| N1 | 正文数字均可回溯 P1 台账 | 逐条比对 | 加台账外数字 |
+| N2 | 同一量在全文取值唯一 | 语境匹配 | 改其中一处 |
+| N3 | 图表数字与正文一致 | 逐条比对 | 改图表数字 |
+
+### 17.3 术语检查
+
+| # | 判据 | 检测 | 变异用例 |
+|---|---|---|---|
+| M1 | 同一术语全文唯一译名 | 术语表比对 | 混用两个译名 |
+| M2 | 缩写首次定义 | 正则 | 删定义 |
+| M3 | 缩写全文一致 | 表比对 | 混用 |
+
+### 17.4 逻辑检查
+
+见 §6 NC-1~7。
+
+---
+
+## 18. 多模型复审
+
+### 18.1 复审角色
+
+| 角色 | 审什么 | 不审什么 |
+|---|---|---|
+| 领域专家 | 创新点、文献定位 | 语言、格式 |
+| 方法学家 | 方法严谨性 | 语言、格式 |
+| 统计学家 | 统计解释、数字一致 | 语言、格式 |
+| 期刊编辑 | 格式、结构、摘要、关键词 | 内容 |
+| 审稿人 | 模拟审稿意见 | 格式 |
+| 语言编辑 | 润色（不改事实） | 内容 |
+
+### 18.2 复审流程
+
+```text
+稿件初稿
+  ↓
+角色 A 审 → 角色 B 审 → 角色 C 审 → 角色 D 审
+  ↓
+汇总意见
+  ↓
+agent 修改
+  ↓
+角色 E 整体审
+  ↓
+复审通过
+  ↓
+输出
+```
+
+### 18.3 复审记录
+
+文件：`02_writing/review/review_summary.yaml`
+
+```yaml
+review_id: review_20260915_180000
+manuscript_version: v1
+timestamp: 2026-09-15T18:00:00+08:00
+
+models:
+  - role: 领域专家
+    model: model_a
+    status: passed
+    major: 0
+    minor: 1
+    info: 1
+  - role: 方法学家
+    model: model_b
+    status: passed
+    major: 0
+    minor: 2
+    info: 0
+  - role: 统计学家
+    model: model_c
+    status: failed
+    major: 1
+    minor: 1
+    info: 0
+
+summary:
+  total_major: 1
+  total_minor: 4
+  total_info: 1
+  passed_models: 2
+  failed_models: 1
+  overall: failed
+
+action:
+  - 修复 model_c 的 major：P 值应报精确值
+  - 采纳 model_a 的 minor：补充局限
+  - 采纳 model_b 的 minor：方法引用补充
+
+next:
+  - 生成 v2
+  - 重新复审
+```
+
+### 18.4 复审通过标准
+
+| 标准 | 说明 |
+|---|---|
+| 无 major | 所有角色都无 major |
+| 多数通过 | 至少 2/3 角色 passed |
+| minor 可接受 | 记录后执行 |
+| 用户可覆盖 | 用户可强制通过 |
+
+---
+
+## 19. 修订机制
+
+### 19.1 修订触发
+
+| 触发 | 说明 |
+|---|---|
+| 复审不通过 | agent 自动修 |
+| 用户修改意见 | 用户明确要求 |
+| 一致性检查失败 | agent 自动修 |
+| 目标期刊变更 | 用户要求 |
+| P1 证据更新 | 用户要求 |
+
+### 19.2 修订上限
+
+| 修订类型 | 最大轮次 |
+|---|---|
+| 复审不通过 | 3 轮 |
+| 一致性检查 | 3 轮 |
+| 用户意见 | 不限 |
+
+### 19.3 修订记录
+
+文件：`02_writing/revision_log.yaml`
+
+```yaml
+manuscript_id: ms_20260915_170000
+revisions:
+  - version: v1
+    timestamp: 2026-09-15T17:00:00+08:00
+    trigger: initial_draft
+  - version: v2
+    timestamp: 2026-09-15T18:30:00+08:00
+    trigger: review_failed
+    changes:
+      - 修复 P 值报法
+      - 补充局限
+      - 补充方法引用
+```
+
+---
+
+## 20. P2 接口文件
+
+### 20.1 输出总览
+
+| 文件 | 给谁 | 用途 |
+|---|---|---|
+| `p2_to_p3_manuscript.yaml` | P3 | 稿件结构、图表位置、引用 |
+| `p2_to_p4b_quality.yaml` | P4-b | 稿件质量、定位 |
+| 稿件文件 | P3 | main.tex / main.docx |
+| `refs.bib` | P3 | 引用格式 |
+| 图表清单 | P3 | 图表规范 |
+
+### 20.2 p2_to_p3_manuscript.yaml
+
+```yaml
+project_id: project_001
+timestamp: 2026-09-15T19:00:00+08:00
+manuscript_version: v2
+
+structure:
+  order: S2-a
+  sections:
+    - title_page
+    - abstract
+    - keywords
+    - introduction
+    - materials_and_methods
+    - results
+    - discussion
+    - conclusions
+    - declarations
+    - references
+
+files:
+  manuscript: 02_writing/output/main.docx
+  refs: 02_writing/output/refs.bib
+  figures_dir: 02_writing/output/figures/
+  tables_dir: 02_writing/output/tables/
+
+figures:
+  - figure_id: fig1
+    file: figures/Figure_1.tif
+    caption: "Fig. 1. ..."
+    position_hint: after_results_para_1
+
+tables:
+  - table_id: table1
+    file: tables/Table_1.docx
+    caption: "Table 1. ..."
+    position_hint: after_results_para_2
+
+references:
+  style: vancouver
+  count: 42
+
+declarations:
+  ethics: "This study was approved by..."
+  consent: "Not applicable."
+  data_availability: "Data are available in GEO (GSE250167)."
+  code_availability: "Code is available at https://github.com/..."
+  competing_interests: "The authors declare no conflict of interest."
+  funding: "This work was supported by..."
+  authors_contributions: "Conceptualization: ...; Methodology: ..."
+  ai_declaration: "During the preparation of this work the author(s) used..."
+```
+
+### 20.3 p2_to_p4b_quality.yaml
+
+```yaml
+project_id: project_001
+timestamp: 2026-09-15T19:00:00+08:00
+manuscript_version: v2
+
+quality_assessment:
+  narrative_completeness: high
+  evidence_consistency: high
+  method_rigor: high
+  statistical_validity: high
+  writing_quality: medium
+  figure_quality: high
+  novelty: medium
+  clinical_value: medium
+
+topic_assessment:
+  primary_topic: 化合物 X 抑制 HCC 增殖
+  secondary_topic: PI3K/AKT 通路
+  potential_journals:
+    - 方向: 药理学
+    - 方向: 肿瘤学
+    - 方向: 分子医学
+
+strengths:
+  - 分析方法规范
+  - 图表质量高
+  - 叙事完整
+
+weaknesses:
+  - 缺少外部验证
+  - 缺少体内实验
+  - 创新性中等
+
+recommendations:
+  - 补充体内实验
+  - 补充外部验证
+  - 强化创新点
+```
+
+---
+
+## 21. 消融实验设计
+
+### 21.1 P2 消融用例
+
+| # | 判据 | 注入方式 | 期望触发 |
+|---|---|---|---|
+| WP1.1 | 标题无升级词 | 加"揭示" | 标题检查 FAIL |
+| WP2.1 | 摘要首句 == P1 | 改首句 | 一致性检查 FAIL |
+| WP3.1 | 已调用 skill | 删留痕 | skill 检查 FAIL |
+| WP3.2 | 引言引用 ∈ skill 输出 | 加幻觉引用 | 引用检查 FAIL |
+| WP4.3 | 统计含单/双侧 + 校正 | 删双侧 | 统计检查 FAIL |
+| WP5a.1 | 显著同句内有 [L-xxx] | 删锚 | 锚检查 FAIL |
+| WP5b.1 | 图号连续无缺 | 跳号 | 图号检查 FAIL |
+| WP5c.1 | 图注含精确 n | 删 n= | 图注检查 FAIL |
+| WP5d.1 | 图题无信息词 | 加"主要结果" | 图题检查 FAIL |
+| WP6.1 | 讨论首段 == P1 | 改首段 | 一致性检查 FAIL |
+| WP7c.1a | 无"用而未引" | 正文引 [99] 无 | 引用检查 FAIL |
+| WP8.1 | 模板句式 0 | 加模板句 | 去 AI 味 FAIL |
+| NC3 | 讨论首段 = P1 | 改首段 | NC 检查 FAIL |
+| NC6 | 摘要首句 = P1 | 改首句 | NC 检查 FAIL |
+| N1 | 数字可回溯 P1 台账 | 加台账外数字 | 数字检查 FAIL |
+| M1 | 同一术语全文唯一 | 混用两个译名 | 术语检查 FAIL |
+| D1 | 声明 8 项齐全 | 删 Data availability | 声明检查 FAIL |
+| R2 | 参考文献编号连续 | 跳 [99] | 编号检查 FAIL |
+| R9 | 域代码已清除 | 保留域代码 | 域代码检查 FAIL |
+| T1 | Title 长度 ≤上限 | 超限 | Title 检查 FAIL |
+
+### 21.2 消融记录
+
+文件：`02_writing/_runs/mutation_results.json`
+
+结构与 P1 一致。
+
+### 21.3 消融通过标准
+
+| 标准 | 说明 |
+|---|---|
+| 每个 A 档判据至少 1 个变异用例 | 骨架比例 100% |
+| 每个 A 档判据变异用例能抓到 | 抓不到 = 空规 |
+| 每个 A 档判据**先 FAIL 后 PASS** | 唯一有效证据 |
+| 休眠比例 ≤ 20% | 超过判"判据膨胀" |
+| GLOBAL 占比 ≤ 10% | 超过判"归因稀释" |
+
+---
+
+## 22. 休眠登记
+
+文件：`02_writing/dormant_registry.yaml`
+
+```yaml
+dormant:
+  - id: B1
+    rule: 双盲稿匿名化
+    reason: 目标期刊未定
+    activate_when: target_journal 确定且为双盲刊
+  - id: B2
+    rule: 报告规范清单
+    reason: 研究类型未定
+    activate_when: study_type 确定
+  - id: B3
+    rule: Highlights / Graphical Abstract
+    reason: 目标刊非 Elsevier
+    activate_when: target_publisher == Elsevier
+  - id: B6
+    rule: Reporting Summary
+    reason: 目标刊非 Nature 系
+    activate_when: target_publisher ∈ Nature 系
+  - id: B7
+    rule: 分社差异参数
+    reason: 目标刊未定
+    activate_when: target_journal 确定
+  - id: B8
+    rule: 伦理声明具体句式
+    reason: 未涉及人体/动物
+    activate_when: 涉及人体/动物
+  - id: B9
+    rule: 数据可用性登录号
+    reason: 无组学数据
+    activate_when: 有组学数据
+```
+
+---
+
+## 23. 完整目录树
+
+```text
+02_writing/
+├── p2_config.yaml
+├── p2_customization.yaml
+├── p2_reporting_guidelines.yaml
+├── p2_journal_matrix.yaml
+├── p2_title_page.yaml
+├── p2_declarations_matrix.yaml
+├── p2_cover_letter.md
+├── p2_highlights_ga.yaml
+├── p2_image_integrity.yaml
+├── p2_structure_choice.yaml
+├── p2_figure_table_rules.yaml
+├── p2_reference_style.yaml
+├── p2_outline.md
+├── p2_claims.yaml
+├── p2_nc_check.yaml
+├── p2_declarations.yaml
+├── p2_to_p3_manuscript.yaml
+├── p2_to_p4b_quality.yaml
+├── dormant_registry.yaml
+├── manuscript/
+│   ├── v1/
+│   ├── v2/
+│   └── current -> v2
+├── refs/
+│   ├── refs.bib
+│   └── refs_audit.yaml
+├── figures/
+├── tables/
+├── checklists/
+│   ├── arrive_2.0_checklist.pdf
+│   └── tripod_checklist.pdf
+├── review/
+│   ├── review_summary.yaml
+│   └── reviewer_comments.md
+├── revision_log.yaml
+└── _runs/
+    ├── mutation_results.json
+    └── run_{timestamp}/
+```
+
+---
+
+## 24. 配置文件总览
+
+| 文件 | 位置 | 用途 |
+|---|---|---|
+| `p2_config.yaml` | `02_writing/` | P2 主配置 |
+| `p2_customization.yaml` | `02_writing/` | 定制需求 8 项 |
+| `p2_reporting_guidelines.yaml` | `02_writing/` | 报告规范清单 |
+| `p2_journal_matrix.yaml` | `02_writing/` | 六社差异速查 |
+| `p2_title_page.yaml` | `02_writing/` | Title Page 要素 |
+| `p2_declarations_matrix.yaml` | `02_writing/` | 声明六社差异 |
+| `p2_cover_letter.md` | `02_writing/` | Cover Letter |
+| `p2_highlights_ga.yaml` | `02_writing/` | Highlights / GA |
+| `p2_image_integrity.yaml` | `02_writing/` | 图像完整性红线 |
+| `p2_structure_choice.yaml` | `02_writing/` | S1/S2-a 选择记录 |
+| `p2_figure_table_rules.yaml` | `02_writing/` | 图表位置与图注规则 |
+| `p2_reference_style.yaml` | `02_writing/` | 参考文献制式 |
+| `p2_outline.md` | `02_writing/` | L0/L1/L2 分级大纲 |
+| `p2_claims.yaml` | `02_writing/` | 主张-证据-锚映射 |
+| `p2_nc_check.yaml` | `02_writing/` | NC-1~7 检查结果 |
+| `p2_declarations.yaml` | `02_writing/` | 声明块 8 项 |
+| `p2_to_p3_manuscript.yaml` | `02_writing/` | 给 P3 的稿件接口 |
+| `p2_to_p4b_quality.yaml` | `02_writing/` | 给 P4-b 的质量接口 |
+| `dormant_registry.yaml` | `02_writing/` | 休眠登记 |
+| `review_summary.yaml` | `02_writing/review/` |

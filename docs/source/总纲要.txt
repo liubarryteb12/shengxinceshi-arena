@@ -1,0 +1,675 @@
+# P1–P4 总纲要与总安排
+
+> 版本：1.0
+> 定位：四部分整合纲要 + 建设路线 + 交付清单
+> 纪律：应细尽细；不重复各部分细节，只做整合、安排、索引
+
+---
+
+# 第一部分 · 总纲要
+
+## 1. 系统定位
+
+一套**用户驱动 + agent 编排 + 证据可追溯 + 排版可验证**的 SCI 论文生产系统。
+
+用户管方向和取舍，agent 管执行和记录。四部分互相约束、互相反馈、形成闭环。
+
+## 2. 四部分定位
+
+| 部分 | 定位 | 一句话 |
+|---|---|---|
+| **P1** 生信分析 | 证据生产层 | 从数据到可引用的结构化证据 |
+| **P2** SCI 写作 | 稿件生产层 | 从证据到符合目标期刊的稿件 |
+| **P3** 文稿自动排版 | 投稿包生产层 | 从稿件到符合期刊要求的投稿包 |
+| **P4** 期刊分析 | 策略层 | 前端定方向，后端定投稿 |
+
+## 3. 整体架构
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│                    P4-a 题材初判与期刊方向预判                  │
+│  产出：期刊方向包（约束 P1/P2/P3）                              │
+└──────────────────────────────────────────────────────────────┘
+                            ↓ 前馈约束
+┌──────────────────────────────────────────────────────────────┐
+│  P1 生信分析          P2 SCI 写作          P3 文稿自动排版      │
+│  ┌────────┐          ┌────────┐          ┌────────┐          │
+│  │ 证据   │ ──────→  │ 稿件   │ ──────→  │ 投稿包 │          │
+│  └────────┘          └────────┘          └────────┘          │
+│       ↑                    ↑                    ↑             │
+│       │                    │                    │             │
+│  用户干预点           用户干预点           用户干预点           │
+└──────────────────────────────────────────────────────────────┘
+                            ↓ 后验反馈
+┌──────────────────────────────────────────────────────────────┐
+│                  P4-b 成稿质量与投稿定位复审                    │
+│  产出：推荐期刊列表 + 投稿顺序 + 反馈路径                       │
+└──────────────────────────────────────────────────────────────┘
+                            ↓ 反馈（回 P1/P2/P3）
+```
+
+## 4. 数据流
+
+```text
+用户想法/数据
+  ↓
+[P4-a] 期刊方向包 ──────────────────┐
+  ↓                                 │
+[P1] 证据包 ────────────────┐        │
+  ↓                          │        │
+[P2] 稿件包 ────────┐        │        │
+  ↓                  │        │        │
+[P3] 投稿包 ─┐       │        │        │
+  ↓          │       │        │        │
+[P4-b] 推荐期刊 + 投稿顺序 + 反馈 ←────┘
+  ↓
+用户决策
+```
+
+## 5. 接口矩阵
+
+### 5.1 谁读谁（读侧）
+
+| 读方 → | P1 | P2 | P3 | P4-a | P4-b | 用户 |
+|---|---|---|---|---|---|---|
+| **P1** | — | — | — | ✔ | — | ✔ |
+| **P2** | ✔ | — | — | ✔ | — | ✔ |
+| **P3** | — | ✔ | — | ✔ | — | ✔ |
+| **P4-a** | — | — | — | — | — | ✔ |
+| **P4-b** | ✔ | ✔ | ✔ | ✔ | — | ✔ |
+
+### 5.2 谁写谁（写侧）
+
+| 写方 ↓ | P1 接口 | P2 接口 | P3 接口 | P4-a 接口 | P4-b 接口 |
+|---|---|---|---|---|---|
+| **P1** | — | `p1_to_p2_evidence.yaml` | — | — | `p1_to_p4_quality.yaml` |
+| **P2** | — | — | `p2_to_p3_manuscript.yaml` | — | `p2_to_p4b_quality.yaml` |
+| **P3** | — | — | — | — | `check_report.md` + `submission_package.zip` |
+| **P4-a** | `analysis_requirements` | `writing_constraints` | `typesetting_constraints` | — | 全包 |
+| **P4-b** | 反馈 | 反馈 | 反馈 | — | — |
+
+### 5.3 关键接口文件
+
+| 文件 | 生产方 | 消费方 |
+|---|---|---|
+| `journal_direction_package.yaml` | P4-a | P1 / P2 / P3 / P4-b |
+| `p1_to_p2_evidence.yaml` | P1 | P2 |
+| `p1_to_p4_quality.yaml` | P1 | P4-b |
+| `p2_to_p3_manuscript.yaml` | P2 | P3 |
+| `p2_to_p4b_quality.yaml` | P2 | P4-b |
+| `check_report.md` | P3 | P4-b |
+| `submission_package.zip` | P3 | P4-b |
+| `recommended_journals.yaml` | P4-b | 用户 |
+| `submission_order.yaml` | P4-b | 用户 |
+| `feedback.yaml` | P4-b | P1 / P2 / P3 |
+
+## 6. 闭环机制
+
+```text
+P4-a 前馈约束 → P1 → P2 → P3 → P4-b 后验复审
+                                      ↓
+                                    反馈
+                                      ↓
+                            P1 / P2 / P3 补强
+                                      ↓
+                                  重新走流程
+```
+
+**闭环三条件**：
+
+1. P4-b 必须与 P4-a 对比（实测 vs 预估）。
+2. 不匹配必须给出反馈路径。
+3. 反馈必须能回到 P1/P2/P3。
+
+---
+
+# 第二部分 · 总安排
+
+## 7. 建设顺序
+
+### 7.1 分五轮
+
+| 轮次 | 目标 | 交付 |
+|---|---|---|
+| **第 1 轮** | 立骨架 | P1/P2/P3/P4 目录 + 接口文件定义 + 空规则 |
+| **第 2 轮** | 填 P1 | P1 模块化 + 执行引擎 + 复审 + 沉淀 |
+| **第 3 轮** | 填 P2 | P2 WP-1~9 + NC-1~7 + 结构序 + 措辞纪律 |
+| **第 4 轮** | 填 P3 | P3 排版 + 出图 + 五格式 + 双轨行距 |
+| **第 5 轮** | 填 P4 | P4-a 方向包 + P4-b 复审 + 期刊数据库 |
+| **第 6 轮** | 消融 | 所有 A 档判据配变异用例 + 先 FAIL 后 PASS |
+| **第 7 轮** | 联调 | 跑通一个最小闭环（GSE31210 或同类） |
+
+### 7.2 每轮验收标准
+
+| 轮次 | 验收 |
+|---|---|
+| 第 1 轮 | 目录树齐全；接口文件字段完整；空规则有登记 |
+| 第 2 轮 | P1 最小闭环跑通：一个数据集 + 一个分析 + 生成 manifest |
+| 第 3 轮 | P2 最小闭环跑通：用 P1 结果写 Methods 和 Results |
+| 第 4 轮 | P3 最小闭环跑通：套模板编译 PDF + 跑排版检查 |
+| 第 5 轮 | P4 最小闭环跑通：给定稿件输出推荐期刊 |
+| 第 6 轮 | 所有 A 档判据至少 1 个变异用例；抓不到 = 空规 |
+| 第 7 轮 | 端到端跑通 P4-a → P1 → P2 → P3 → P4-b |
+
+## 8. 依赖关系
+
+```text
+第 1 轮（骨架）
+  ├── 第 2 轮（P1）依赖第 1 轮
+  ├── 第 3 轮（P2）依赖第 2 轮（P1 接口）
+  ├── 第 4 轮（P3）依赖第 3 轮（P2 接口）
+  ├── 第 5 轮（P4）依赖第 1 轮（接口定义）
+  └── 第 6 轮（消融）依赖第 2–5 轮全部完成
+        └── 第 7 轮（联调）依赖第 6 轮
+```
+
+**关键路径**：第 1 轮 → 第 2 轮 → 第 3 轮 → 第 4 轮 → 第 6 轮 → 第 7 轮。
+
+**可并行**：第 5 轮（P4）可与第 2–4 轮并行。
+
+## 9. 里程碑
+
+| # | 里程碑 | 判据 |
+|---|---|---|
+| M1 | 骨架立起 | 目录树齐全，接口文件定义完成 |
+| M2 | P1 跑通 | 一个数据集端到端产出 manifest + handoff |
+| M3 | P2 跑通 | 用 P1 证据产出 Methods + Results |
+| M4 | P3 跑通 | 套模板产出 PDF + 检查报告 |
+| M5 | P4 跑通 | 给定稿件产出推荐期刊 |
+| M6 | 消融通过 | 所有 A 档判据先 FAIL 后 PASS |
+| M7 | 端到端 | P4-a → P1 → P2 → P3 → P4-b 跑通 |
+
+## 10. 交付物清单
+
+| # | 交付物 | 轮次 |
+|---|---|---|
+| 1 | 目录树 | 第 1 轮 |
+| 2 | 接口文件定义 | 第 1 轮 |
+| 3 | P1 工程规范 | 第 2 轮 |
+| 4 | P1 代码 | 第 2 轮 |
+| 5 | P2 工程规范 | 第 3 轮 |
+| 6 | P2 代码 | 第 3 轮 |
+| 7 | P3 工程规范 | 第 4 轮 |
+| 8 | P3 代码 | 第 4 轮 |
+| 9 | P4 工程规范 | 第 5 轮 |
+| 10 | P4 代码 | 第 5 轮 |
+| 11 | 消融报告 | 第 6 轮 |
+| 12 | 端到端报告 | 第 7 轮 |
+
+---
+
+# 第三部分 · 总目录
+
+## 11. 完整目录树
+
+```text
+project_root/
+├── workspace.yaml
+├── inputs/
+├── analysis/                    # P1
+│   ├── modules/
+│   ├── outputs/
+│   ├── _drafts/
+│   ├── _index/
+│   ├── _runs/
+│   ├── _config/
+│   └── _templates/
+├── 02_writing/                  # P2
+│   ├── manuscript/
+│   ├── refs/
+│   ├── figures/
+│   ├── tables/
+│   ├── checklists/
+│   ├── review/
+│   └── _runs/
+├── 03_typesetting/              # P3
+│   ├── templates/
+│   ├── output/
+│   ├── figures/
+│   └── _runs/
+├── 04_journal/                  # P4
+│   ├── snapshots/
+│   └── _runs/
+├── handoff/
+├── checkpoints/
+├── next_tasklist/
+└── logs/
+```
+
+## 12. 总文件清单
+
+### 12.1 P1 文件
+
+| 文件 | 位置 | 用途 |
+|---|---|---|
+| `workspace.yaml` | 根目录 | 工作空间元信息 |
+| `migration_log.yaml` | `inputs/` | 数据迁移记录 |
+| `module.yaml` | `analysis/modules/{id}/` | 模块定义 |
+| `register_log.yaml` | `analysis/modules/{id}/` | 模块注册记录 |
+| `module_index.yaml` | `analysis/_index/` | 模块索引 |
+| `dependency_check.yaml` | `analysis/_index/` | 依赖检查 |
+| `flow_draft.yaml` | `analysis/_index/` | 流程草案 |
+| `flow_confirmed.yaml` | `analysis/_index/` | 确认流程 |
+| `partn_n_registry.yaml` | `analysis/_index/` | 编号注册表 |
+| `cache_index.yaml` | `analysis/_index/` | 缓存索引 |
+| `template_index.yaml` | `analysis/_index/` | 模板索引 |
+| `template_health.yaml` | `analysis/_index/` | 模板体检 |
+| `data_availability.yaml` | `analysis/_index/` | 数据可用性 |
+| `result_index.yaml` | `analysis/_index/` | 结果索引 |
+| `figure_index.yaml` | `analysis/_index/` | 图表索引 |
+| `dormant_registry.yaml` | `analysis/_index/` | 休眠登记 |
+| `p1_to_p2_evidence.yaml` | `analysis/_index/` | P1→P2 接口 |
+| `p1_to_p4_quality.yaml` | `analysis/_index/` | P1→P4 接口 |
+| `input_{run_id}.json` | `analysis/outputs/{id}/run/` | 输入 JSON |
+| `manifest.yaml` | `analysis/outputs/{id}/` | 结果描述 |
+| `qc_report.yaml` | `analysis/outputs/{id}/records/` | 质控报告 |
+| `error_log.yaml` | `analysis/outputs/{id}/records/` | 错误日志 |
+| `handoff.md` | `analysis/outputs/{id}/records/` | 交接单 |
+| `diff.md` | `analysis/outputs/{id}/records/` | 变化对比 |
+| `checkpoint.yaml` | `analysis/outputs/{id}/records/` | 恢复锚点 |
+| `next_tasklist.md` | `analysis/outputs/{id}/records/` | 下一步 |
+| `review_summary.yaml` | `analysis/modules/{id}/scripts/review/` | 复审汇总 |
+| `run.yaml` | `analysis/_runs/run_{ts}/` | 运行记录 |
+| `mutation_results.json` | `analysis/_runs/` | 变异测试 |
+
+### 12.2 P2 文件
+
+| 文件 | 位置 | 用途 |
+|---|---|---|
+| `p2_config.yaml` | `02_writing/` | 主配置 |
+| `p2_customization.yaml` | `02_writing/` | 定制需求 8 项 |
+| `p2_reporting_guidelines.yaml` | `02_writing/` | 报告规范 |
+| `p2_journal_matrix.yaml` | `02_writing/` | 六社差异 |
+| `p2_title_page.yaml` | `02_writing/` | Title Page 要素 |
+| `p2_declarations_matrix.yaml` | `02_writing/` | 声明六社差异 |
+| `p2_cover_letter.md` | `02_writing/` | Cover Letter |
+| `p2_highlights_ga.yaml` | `02_writing/` | Highlights / GA |
+| `p2_image_integrity.yaml` | `02_writing/` | 图像完整性 |
+| `p2_structure_choice.yaml` | `02_writing/` | S1/S2 选择 |
+| `p2_figure_table_rules.yaml` | `02_writing/` | 图表位置 |
+| `p2_reference_style.yaml` | `02_writing/` | 参考文献制式 |
+| `p2_outline.md` | `02_writing/` | 分级大纲 |
+| `p2_claims.yaml` | `02_writing/` | 主张-证据映射 |
+| `p2_nc_check.yaml` | `02_writing/` | NC 检查 |
+| `p2_declarations.yaml` | `02_writing/` | 声明块 |
+| `p2_to_p3_manuscript.yaml` | `02_writing/` | P2→P3 接口 |
+| `p2_to_p4b_quality.yaml` | `02_writing/` | P2→P4b 接口 |
+| `dormant_registry.yaml` | `02_writing/` | 休眠登记 |
+| `review_summary.yaml` | `02_writing/review/` | 复审汇总 |
+| `revision_log.yaml` | `02_writing/` | 修订记录 |
+| `mutation_results.json` | `02_writing/_runs/` | 变异测试 |
+
+### 12.3 P3 文件
+
+| 文件 | 位置 | 用途 |
+|---|---|---|
+| `p3_config.yaml` | `03_typesetting/` | 主配置 |
+| `p3_typeset_config.yaml` | `03_typesetting/` | 排版参数 |
+| `p3_font_policy.yaml` | `03_typesetting/` | 字体纪律 |
+| `p3_section_order.yaml` | `03_typesetting/` | 结构序 |
+| `p3_journal_checklist.yaml` | `03_typesetting/` | 期刊核对 |
+| `p3_export_manifest.yaml` | `03_typesetting/` | 五格式导出 |
+| `p3_line_spacing.yaml` | `03_typesetting/` | 双轨行距 |
+| `p3_word_template.yaml` | `03_typesetting/` | Word 模板 |
+| `p3_image_policy.yaml` | `03_typesetting/` | 图片分流 |
+| `p3_image_downgrade.yaml` | `03_typesetting/` | 降级顺序 |
+| `p3_image_taboo.yaml` | `03_typesetting/` | 禁忌清单 |
+| `p3_precheck_60s.yaml` | `03_typesetting/` | 提交前自查 |
+| `p3_figure_safe_spec.yaml` | `03_typesetting/` | 出图安全规格 |
+| `p3_figure_by_type.yaml` | `03_typesetting/` | 各类图专项 |
+| `p3_figure_legend_template.md` | `03_typesetting/` | 图注模板 |
+| `p3_colorblind_palette.yaml` | `03_typesetting/` | 色盲色板 |
+| `p3_figure_workflow.md` | `03_typesetting/` | 出图工作流 |
+| `p3_figure_checklist.yaml` | `03_typesetting/` | 出图检查 |
+| `dormant_registry.yaml` | `03_typesetting/` | 休眠登记 |
+| `check_report.md` | `03_typesetting/` | 检查报告 |
+| `mutation_results.json` | `03_typesetting/_runs/` | 变异测试 |
+
+### 12.4 P4 文件
+
+| 文件 | 位置 | 用途 |
+|---|---|---|
+| `p4_config.yaml` | `04_journal/` | 主配置 |
+| `journal_direction_package.yaml` | `04_journal/` | P4-a 输出 |
+| `journal_database.yaml` | `04_journal/` | 期刊数据库 |
+| `recommended_journals.yaml` | `04_journal/` | P4-b 输出 |
+| `submission_order.yaml` | `04_journal/` | 投稿顺序 |
+| `predatory_check.yaml` | `04_journal/` | 掠夺性筛查 |
+| `quality_assessment.yaml` | `04_journal/` | 质量评估 |
+| `match_score.yaml` | `04_journal/` | 匹配评分 |
+| `dormant_registry.yaml` | `04_journal/` | 休眠登记 |
+| `feedback.yaml` | `04_journal/` | 反馈路径 |
+| `mutation_results.json` | `04_journal/_runs/` | 变异测试 |
+
+---
+
+# 第四部分 · 总判据清单
+
+## 13. P1 判据
+
+| 类别 | 编号 | 数量 |
+|---|---|---|
+| 数据迁移 | Q1–Q6 | 6 |
+| 模块注册 | （隐含） | — |
+| 依赖检查 | （隐含） | — |
+| 执行引擎 | （隐含） | — |
+| 质控 | 12 项 | 12 |
+| 编号规则 | （隐含） | — |
+| 记录四件套 | （隐含） | — |
+| 中断恢复 | （隐含） | — |
+| 图片产出前置 | Q1–Q6 | 6 |
+| 消融 | （见 §15） | — |
+
+## 14. P2 判据
+
+| 类别 | 编号 | 数量 |
+|---|---|---|
+| WP-0 素材就绪 | 0.1–0.4 | 4 |
+| WP-1 标题 | 1.1–1.6 | 6 |
+| WP-2 摘要 | 2.1–2.7 | 7 |
+| WP-3 背景 | 3.1–3.4 | 4 |
+| WP-4 方法 | 4.1–4.7 | 7 |
+| WP-5a 结果文字 | 5a.1–5a.3 | 3 |
+| WP-5b 结果排版 | 5b.1–5b.4 | 4 |
+| WP-5c 图注 | 5c.1–5c.6 | 6 |
+| WP-5d 图题 | 5d.1–5d.4 | 4 |
+| WP-6 讨论 | 6.1–6.4 | 4 |
+| WP-7 参考文献 | 7c.1a–7b.3 | 4 |
+| WP-8 去 AI 味 | 8.1–8.9 | 5 |
+| WP-9 三格式导出 | 9.1–9.6 | 5 |
+| NC-1~7 | NC-1–NC-7 | 7 |
+| 结构序 | S1–S4 | 4 |
+| 声明块 | D1–D3 | 3 |
+| 证据边界 | W1–W8 | 8 |
+| 图表位置 | G1–G12 | 12 |
+| 参考文献 | R1–R9 | 9 |
+| 一致性 | N1–N3 + M1–M3 | 6 |
+| Title Page | T1–T5 | 5 |
+| Highlights/GA | H1–H3 | 3 |
+| 图像完整性 | I1–I4 | 4 |
+
+**P2 判据总计：约 126 项**
+
+## 15. P3 判据
+
+| 类别 | 编号 | 数量 |
+|---|---|---|
+| 排版三铁律 | T1–T6 | 6 |
+| 字体纪律 | T7–T10 | 4 |
+| 结构序判定 | T11–T15 | 5 |
+| 正文排版 A 类 | T16–T35 | 20 |
+| 期刊核对 R1–R5 | T36–T42 | 7 |
+| 双轨行距 | T43–T46 | 4 |
+| Word 模板 | T47–T54 | 8 |
+| 图表位置 | T55–T64 | 10 |
+| 导出 PDF | T65–T67 | 3 |
+| 唯一真源 | T68–T69 | 2 |
+| 图片分流 | F1–F3 | 3 |
+| 图片参数卡 | F4–F22 | 19 |
+| 像素宽 | F23–F24 | 2 |
+| 五格式导出 | F25–F27 | 3 |
+| 自查 | F28–F29 | 2 |
+| 降级 | D1–D7 | 7 |
+| 禁忌 | D8–D14 | 7 |
+| 排版守卫 T1–T18 | （与上方重合） | — |
+| 出图守卫 F1–F22 | （与上方重合） | — |
+| 降级守卫 D1–D7 | （与上方重合） | — |
+
+**P3 判据总计：约 110 项**
+
+## 16. P4 判据
+
+| 类别 | 编号 | 数量 |
+|---|---|---|
+| P4-a 题材初判 | A1–A7 | 7 |
+| P4-b 成稿复审 | B1–B7 | 7 |
+| 期刊方向包 | C1–C9 | 9 |
+| 评价维度 | E1–E3 | 3 |
+| 期刊数据源 | S1–S5 | 5 |
+| 匹配算法 | M1–M4 | 4 |
+| 推荐期刊 | J1–J5 | 5 |
+| 投稿顺序 | O1–O4 | 4 |
+| 掠夺性筛查 | P1–P4 | 4 |
+| 接口 | I1–I7 | 7 |
+
+**P4 判据总计：约 55 项**
+
+## 17. 四部分判据总计
+
+| 部分 | 判据数 |
+|---|---|
+| P1 | 约 30 项 |
+| P2 | 约 126 项 |
+| P3 | 约 110 项 |
+| P4 | 约 55 项 |
+| **合计** | **约 321 项** |
+
+---
+
+# 第五部分 · 总消融清单
+
+## 18. 消融规则
+
+> 每个 A 档判据至少 1 个变异用例。抓不到 = 空规。先 FAIL 后 PASS 是唯一有效证据。
+
+## 19. 消融用例总数
+
+| 部分 | 用例数 |
+|---|---|
+| P1 | 6 |
+| P2 | 20 |
+| P3 | 51 |
+| P4 | 16 |
+| **合计** | **约 93 个** |
+
+## 20. 消融记录
+
+每部分独立记录：
+
+```text
+analysis/_runs/mutation_results.json
+02_writing/_runs/mutation_results.json
+03_typesetting/_runs/mutation_results.json
+04_journal/_runs/mutation_results.json
+```
+
+统一字段：
+
+```json
+{
+  "n_pass": 0,
+  "total": 0,
+  "coverage": "0%",
+  "cases": [
+    {
+      "case_id": "P3-T1",
+      "check_id": "P3.T1.line_spacing",
+      "anchor": "w:line=\"360\"",
+      "injected": "w:line=\"240\"",
+      "expect_fail": true,
+      "caught": false,
+      "verdict": "空规"
+    }
+  ]
+}
+```
+
+---
+
+# 第六部分 · 总休眠清单
+
+## 21. 休眠项汇总
+
+| 部分 | 休眠项 | 激活条件 |
+|---|---|---|
+| P1 | B4 WB 全膜原图 | 含 western_blot |
+| P1 | B6 Reporting Summary | 目标刊 ∈ Nature 系 |
+| P1 | B9 数据可用性登录号 | 含 sequencing |
+| P2 | B1 双盲稿匿名化 | 目标刊为双盲刊 |
+| P2 | B2 报告规范清单 | 研究类型确定 |
+| P2 | B3 Highlights / GA | 目标刊 = Elsevier |
+| P2 | B6 Reporting Summary | 目标刊 ∈ Nature 系 |
+| P2 | B7 分社差异参数 | 目标刊确定 |
+| P2 | B8 伦理声明具体句式 | 涉及人体/动物 |
+| P2 | B9 数据可用性登录号 | 有组学数据 |
+| P3 | V1–V7 分社差异参数 | 目标刊确定 |
+| P3 | R2 双盲稿匿名化 | 目标刊为双盲刊 |
+| P3 | R3 行号与行距 | 目标刊确定 |
+| P4 | V1–V7 分社差异参数 | 目标刊确定 |
+| P4 | W1 期刊数据库联网查询 | 联网可用 |
+| P4 | W2 掠夺性期刊实时查询 | 联网可用 |
+
+**休眠比例目标**：≤ 20%。
+
+---
+
+# 第七部分 · 元原则
+
+## 22. 十五条元原则
+
+| # | 元原则 | 适用 |
+|---|---|---|
+| 1 | 数字唯一来源 | P1/P2/P3/P4 |
+| 2 | 三态判定（pass / fail / N/A） | P1/P2/P3/P4 |
+| 3 | 变异测试 | P1/P2/P3/P4 |
+| 4 | 自指处理 | P1/P2/P3/P4 |
+| 5 | 单一入口 | P1/P2/P3/P4 |
+| 6 | 第 11 条陷阱 | P1/P2/P3/P4 |
+| 7 | 先红后绿 | P1/P2/P3/P4 |
+| 8 | 唯一真源 | P1/P2/P3/P4 |
+| 9 | 排版不得升级 claim | P2/P3 |
+| 10 | 措辞强度 ≤ 证据上限 | P2/P3 |
+| 11 | 双轨行距（审稿版 / 安全版） | P3 |
+| 12 | 图片先分流，再谈参数 | P1/P3 |
+| 13 | 能用矢量就用矢量 | P1/P3 |
+| 14 | 图题在图下、表题在表上 | P2/P3 |
+| 15 | 导出前参考文献转纯文本 | P2/P3 |
+
+## 23. 用户干预点汇总
+
+| 部分 | 干预点数 | 强制触发 | 建议触发 | 自动触发 | 报告触发 |
+|---|---|---|---|---|---|
+| P1 | 约 26 | 14 | 6 | 2 | 4 |
+| P2 | 约 15 | 8 | 5 | 0 | 2 |
+| P3 | 约 14 | 8 | 4 | 1 | 1 |
+| P4 | 约 17 | 8 | 6 | 3 | 0 |
+| **合计** | **约 72** | **38** | **21** | **6** | **7** |
+
+## 24. Agent 权限汇总
+
+| 部分 | 能自动做 | 不能自动做 | 需用户确认 |
+|---|---|---|---|
+| P1 | 约 28 项 | 约 20 项 | 约 22 项 |
+| P2 | 约 20 项 | 约 15 项 | 约 12 项 |
+| P3 | 约 12 项 | 约 10 项 | 约 13 项 |
+| P4 | 约 11 项 | 约 12 项 | 约 14 项 |
+
+---
+
+# 第八部分 · 验收清单
+
+## 25. 每轮验收
+
+### 25.1 第 1 轮（骨架）
+
+- [ ] 目录树齐全
+- [ ] 接口文件定义完成
+- [ ] 空规则已登记
+- [ ] 休眠项已登记
+- [ ] 元原则已写入
+
+### 25.2 第 2 轮（P1）
+
+- [ ] 模块注册流程跑通
+- [ ] 执行引擎跑通
+- [ ] 多模型复审跑通
+- [ ] manifest + 四件套产出
+- [ ] P1 接口文件产出
+- [ ] 变异测试跑通
+
+### 25.3 第 3 轮（P2）
+
+- [ ] L0/L1/L2 分级跑通
+- [ ] WP-1~9 跑通
+- [ ] NC-1~7 跑通
+- [ ] 结构序判定跑通
+- [ ] 措辞纪律跑通
+- [ ] P2 接口文件产出
+- [ ] 变异测试跑通
+
+### 25.4 第 4 轮（P3）
+
+- [ ] 套模板编译 PDF
+- [ ] 双轨行距跑通
+- [ ] 五格式导出跑通
+- [ ] 图片参数卡跑通
+- [ ] 降级顺序跑通
+- [ ] 检查报告产出
+- [ ] 变异测试跑通
+
+### 25.5 第 5 轮（P4）
+
+- [ ] 期刊方向包产出
+- [ ] 期刊数据库建设
+- [ ] 匹配算法跑通
+- [ ] 掠夺性筛查跑通
+- [ ] 推荐期刊列表产出
+- [ ] 投稿顺序产出
+- [ ] 反馈路径产出
+- [ ] 变异测试跑通
+
+### 25.6 第 6 轮（消融）
+
+- [ ] 所有 A 档判据至少 1 个变异用例
+- [ ] 每个变异用例能抓到
+- [ ] 每个 A 档判据先 FAIL 后 PASS
+- [ ] 休眠比例 ≤ 20%
+- [ ] GLOBAL 占比 ≤ 10%
+
+### 25.7 第 7 轮（联调）
+
+- [ ] P4-a → P1 跑通
+- [ ] P1 → P2 跑通
+- [ ] P2 → P3 跑通
+- [ ] P3 → P4-b 跑通
+- [ ] P4-b 反馈 P1/P2/P3 跑通
+- [ ] 端到端闭环跑通
+
+---
+
+# 第九部分 · 建设建议
+
+## 26. 优先建设顺序
+
+**如果只能先做一件事**：先做第 1 轮骨架 + P1 最小闭环。
+
+**理由**：
+
+1. P1 是证据生产层，是 P2/P3/P4 的上游。
+2. P1 跑通后，P2 可以用真实证据写稿件。
+3. P2 跑通后，P3 可以套真实稿件排版。
+4. P3 跑通后，P4-b 可以对真实投稿包复审。
+5. P4-a 可以并行建设。
+
+## 27. 风险提示
+
+| 风险 | 缓解 |
+|---|---|
+| 判据过多，维护成本高 | 按 A/B/C 三档分级；A 档必做，B 档休眠，C 档不立 |
+| 消融用例多，测试时间长 | 优先覆盖 A 档；B 档可用合成样本 |
+| 接口多，容易不一致 | 唯一真源 + 接口矩阵 + 机器检查 |
+| 期刊数据易过期 | 快照 + 时间戳 + 人工确认 |
+| 排版参数多，容易遗漏 | 参数卡 + 检查清单 + 变异测试 |
+| 叙事定制需求多 | L0/L1/L2 分级；缺需求不写深 |
+
+## 28. 一句话总结
+
+> **P1 产证据，P2 写稿件，P3 排投稿包，P4 定策略。**  
+> **P4-a 前馈，P4-b 后验，四部分形成闭环。**  
+> **每条规则能构造 FAIL，每个判据能过消融。**  
+> **用户管方向，agent 管执行和记录。**
+
+---
+
+> 总纲要与总安排结束。
+> 四部分规范 + 总纲要 全部完成。

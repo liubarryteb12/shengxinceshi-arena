@@ -1,0 +1,7 @@
+schema_version: "1.0"
+status: pending
+structure: null
+reason: null
+confirmed_by: null
+confirmed_at: null
+allowed: [S1, S2-a, S2-b, S2-c]

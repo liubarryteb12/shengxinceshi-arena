@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:shengxinceshi-arena:p1-to-p4-quality:1.0",
+  "type": "object",
+  "required": ["schema_version", "contract_id", "project_id", "status", "analysis_summary", "quality_assessment", "topic_assessment"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "contract_id": {"const": "p1_to_p4_quality"},
+    "status": {"enum": ["pending", "draft", "confirmed", "success", "failed"]},
+    "analysis_summary": {"type": "object"},
+    "quality_assessment": {"type": "object"},
+    "topic_assessment": {"type": "object"},
+    "strengths": {"type": "array"},
+    "weaknesses": {"type": "array"},
+    "recommendations": {"type": "array"}
+  },
+  "additionalProperties": true
+}

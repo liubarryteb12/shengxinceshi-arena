@@ -1,0 +1,10 @@
+schema_version: "1.0"
+status: pending
+scores: []
+weights:
+  scope_fit: high
+  tier_fit: high
+  format_fit: medium
+  policy_fit: medium
+  oa_fit: low
+  apc_fit: low

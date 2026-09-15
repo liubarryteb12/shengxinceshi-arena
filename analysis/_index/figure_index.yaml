@@ -1,0 +1,4 @@
+schema_version: "1.0"
+status: empty
+figures: []
+format_policy: [pdf, png, tiff, jpg, svg]

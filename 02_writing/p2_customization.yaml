@@ -1,0 +1,24 @@
+schema_version: "1.0"
+customization_id: null
+timestamp: null
+filled_by: null
+complete: false
+items:
+  - key: research_question
+    value: null
+  - key: target_journal
+    value: null
+  - key: story_type
+    value: null
+  - key: evidence_boundary
+    value: null
+  - key: figure_limit
+    value: null
+  - key: audience
+    value: null
+  - key: must_include
+    value: null
+  - key: must_avoid
+    value: null
+  - key: deadline
+    value: null

@@ -1,0 +1,14 @@
+schema_version: "1.0"
+status: pending
+migration_id: null
+timestamp: null
+method: copy
+sources: []
+summary:
+  total_files: 0
+  success: 0
+  failed: 0
+  warnings: []
+notes:
+  - 尚未提供原始数据地址。
+  - 原始数据默认复制并保持只读。

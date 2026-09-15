@@ -1,0 +1,10 @@
+schema_version: "1.0"
+project_id: shengxinceshi_arena
+stage_a: P4-a
+stage_b: P4-b
+target_journal: null
+target_tier: null
+online_verification_required: true
+allow_memory_only_journal_facts: false
+user_confirmation_required: true
+status: pending

@@ -1,0 +1,31 @@
+schema_version: "1.0"
+status: active
+dormant:
+  - id: B1
+    rule: 双盲稿匿名化
+    reason: 目标期刊尚未确定
+    activate_when: target_journal 确定且为双盲刊
+  - id: B2
+    rule: 报告规范清单
+    reason: 研究类型尚未确定
+    activate_when: study_type 确定
+  - id: B3
+    rule: Highlights / Graphical Abstract
+    reason: 目标出版社尚未确定
+    activate_when: target_publisher == Elsevier
+  - id: B6
+    rule: Reporting Summary
+    reason: 目标出版社尚未确定
+    activate_when: target_publisher 属于 Nature 系
+  - id: B7
+    rule: 分社差异参数
+    reason: 目标期刊尚未确定
+    activate_when: target_journal 确定
+  - id: B8
+    rule: 伦理声明具体句式
+    reason: 尚未确认研究是否涉及人体或动物
+    activate_when: 涉及人体或动物
+  - id: B9
+    rule: 数据可用性登录号
+    reason: 尚未确认是否有组学数据
+    activate_when: 有组学数据

@@ -1,0 +1,61 @@
+schema_version: "1.0"
+status: active
+read_matrix:
+  P1: [P4-a, user]
+  P2: [P1, P4-a, user]
+  P3: [P2, P4-a, user]
+  P4-a: [user]
+  P4-b: [P1, P2, P3, P4-a, user]
+write_matrix:
+  P1:
+    - analysis/_index/p1_to_p2_evidence.yaml
+    - analysis/_index/p1_to_p4_quality.yaml
+  P2:
+    - 02_writing/p2_to_p3_manuscript.yaml
+    - 02_writing/p2_to_p4b_quality.yaml
+  P3:
+    - 03_typesetting/check_report.md
+    - 03_typesetting/output/submission_package.zip
+  P4-a:
+    - 04_journal/journal_direction_package.yaml
+  P4-b:
+    - 04_journal/recommended_journals.yaml
+    - 04_journal/submission_order.yaml
+    - 04_journal/feedback.yaml
+contracts:
+  - id: I01
+    producer: P4-a
+    consumer: P1
+    path: 04_journal/journal_direction_package.yaml
+  - id: I02
+    producer: P4-a
+    consumer: P2
+    path: 04_journal/journal_direction_package.yaml
+  - id: I03
+    producer: P4-a
+    consumer: P3
+    path: 04_journal/journal_direction_package.yaml
+  - id: I04
+    producer: P1
+    consumer: P2
+    path: analysis/_index/p1_to_p2_evidence.yaml
+  - id: I05
+    producer: P1
+    consumer: P4-b
+    path: analysis/_index/p1_to_p4_quality.yaml
+  - id: I06
+    producer: P2
+    consumer: P3
+    path: 02_writing/p2_to_p3_manuscript.yaml
+  - id: I07
+    producer: P2
+    consumer: P4-b
+    path: 02_writing/p2_to_p4b_quality.yaml
+  - id: I08
+    producer: P3
+    consumer: P4-b
+    path: 03_typesetting/check_report.md
+  - id: I09
+    producer: P4-b
+    consumer: P1/P2/P3
+    path: 04_journal/feedback.yaml

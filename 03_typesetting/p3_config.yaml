@@ -1,0 +1,14 @@
+schema_version: "1.0"
+project_id: shengxinceshi_arena
+target_journal: null
+target_publisher: null
+template_source: default
+template_path: null
+typeset_engine: docx
+line_spacing: double
+line_numbers: required
+structure_order: null
+figure_format: five
+language: en
+spelling: american
+status: pending

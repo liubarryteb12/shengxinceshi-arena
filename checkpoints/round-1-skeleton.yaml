@@ -1,0 +1,14 @@
+schema_version: "1.0"
+checkpoint_id: round-1-skeleton
+round: 1
+milestone: M1
+status: in_progress
+created_at: 2026-09-16
+completed:
+  - repository_initialized
+  - source_specs_archived
+  - directory_skeleton_created
+  - interface_contracts_created
+  - dormant_items_registered
+  - empty_rules_registered
+next: round-2-p1

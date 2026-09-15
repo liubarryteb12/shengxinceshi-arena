@@ -1,0 +1,39 @@
+schema_version: "1.0"
+status: active
+dormant:
+  - id: V1
+    rule: 单栏/双栏宽度
+    reason: 目标期刊未定
+    activate_when: target_journal 确定
+  - id: V2
+    rule: 摘要字数上限
+    reason: 目标期刊未定
+    activate_when: target_journal 确定
+  - id: V3
+    rule: 关键词数
+    reason: 目标期刊未定
+    activate_when: target_journal 确定
+  - id: V4
+    rule: 参考文献制式
+    reason: 目标期刊未定
+    activate_when: target_journal 确定
+  - id: V5
+    rule: 声明子标题名称
+    reason: 目标期刊未定
+    activate_when: target_journal 确定
+  - id: V6
+    rule: 分图标签大小写
+    reason: 目标期刊未定
+    activate_when: target_journal 确定
+  - id: V7
+    rule: 单位上标风格
+    reason: 目标期刊未定
+    activate_when: target_journal 确定
+  - id: W1
+    rule: 期刊数据库联网查询
+    reason: 期刊数据库尚为空
+    activate_when: 联网可用
+  - id: W2
+    rule: 掠夺性期刊实时查询
+    reason: 尚未进入 P4-b
+    activate_when: P4-b 启动

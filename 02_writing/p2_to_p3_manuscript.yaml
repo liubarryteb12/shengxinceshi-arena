@@ -1,0 +1,31 @@
+schema_version: "1.0"
+contract_id: p2_to_p3_manuscript
+project_id: shengxinceshi_arena
+status: pending
+timestamp: null
+manuscript_version: null
+structure:
+  order: null
+  sections: []
+files:
+  manuscript: null
+  refs: null
+  figures_dir: null
+  tables_dir: null
+figures: []
+tables: []
+references:
+  style: null
+  count: null
+declarations:
+  ethics: null
+  consent: null
+  data_availability: null
+  code_availability: null
+  competing_interests: null
+  funding: null
+  authors_contributions: null
+  ai_declaration: null
+validation:
+  status: pending
+  checks: []

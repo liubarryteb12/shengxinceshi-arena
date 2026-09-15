@@ -1,0 +1,22 @@
+schema_version: "1.0"
+verdicts:
+  - pass
+  - fail
+  - N/A
+stage_statuses:
+  - pending
+  - draft
+  - confirmed
+  - running
+  - success
+  - failed
+  - blocked
+  - partial
+  - completed
+  - not_applicable
+rule_statuses:
+  - registered
+  - implemented
+  - dormant
+  - blocked
+  - deprecated

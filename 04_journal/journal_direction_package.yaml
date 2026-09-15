@@ -1,0 +1,63 @@
+schema_version: "1.0"
+contract_id: journal_direction_package
+package_id: null
+timestamp: null
+stage: P4-a
+status: draft
+confirmed_by: null
+confirmed_at: null
+
+topic_judgment:
+  primary_topic: null
+  secondary_topic: null
+  study_type: null
+  novelty_level: null
+  data_type: null
+  sample_size: null
+  basis: []
+
+journal_direction:
+  candidate_directions: []
+  target_tier: null
+  likely_publishers: []
+  excluded: []
+
+analysis_requirements:
+  required_modules: []
+  optional_modules: []
+  minimum_evidence: []
+  data_requirements: []
+
+writing_constraints:
+  structure: null
+  abstract_type: null
+  abstract_limit: null
+  keywords_count: null
+  reference_style: null
+  reference_limit: null
+  figure_limit: null
+  table_limit: null
+  language: null
+  audience: null
+  story_type: null
+  evidence_boundary: null
+
+typesetting_constraints:
+  publisher_system: null
+  template: null
+  line_spacing: null
+  line_numbers: null
+  figure_width_single: null
+  figure_width_double: null
+  figure_format: null
+
+risks: []
+uncertainties: []
+pending_items:
+  - 研究想法
+  - 数据概况
+  - 初步结果
+  - 目标方向与层级
+  - 证据边界
+  - 写作约束
+  - 排版约束

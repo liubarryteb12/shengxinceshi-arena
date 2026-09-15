@@ -1,0 +1,22 @@
+schema_version: "1.0"
+contract_id: p2_to_p4b_quality
+project_id: shengxinceshi_arena
+status: pending
+timestamp: null
+manuscript_version: null
+quality_assessment:
+  narrative_completeness: null
+  evidence_consistency: null
+  method_rigor: null
+  statistical_validity: null
+  writing_quality: null
+  figure_quality: null
+  novelty: null
+  clinical_value: null
+topic_assessment:
+  primary_topic: null
+  secondary_topic: null
+  potential_journals: []
+strengths: []
+weaknesses: []
+recommendations: []

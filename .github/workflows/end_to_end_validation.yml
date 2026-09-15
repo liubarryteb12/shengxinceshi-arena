@@ -1,0 +1,35 @@
+name: P1-P4 End-to-End Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      dataset_id:
+        description: GEO dataset ID, for example GSE7451
+        required: true
+        type: string
+      dataset_stage:
+        description: basic or advanced
+        required: true
+        default: basic
+        type: choice
+        options: [basic, advanced]
+      enable_analysis:
+        description: Enable the P1 execution job after Round 2 is implemented
+        required: true
+        default: false
+        type: boolean
+
+jobs:
+  skeleton_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate repository skeleton
+        run: python scripts/validate_workspace.py
+      - name: Report current implementation boundary
+        run: |
+          echo "dataset_id=${{ inputs.dataset_id }}"
+          echo "dataset_stage=${{ inputs.dataset_stage }}"
+          echo "enable_analysis=${{ inputs.enable_analysis }}"
+          echo "P1 execution is intentionally gated until Round 2 is completed."

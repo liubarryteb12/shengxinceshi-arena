@@ -1,0 +1,27 @@
+schema_version: "1.0"
+contract_id: p1_to_p4_quality
+project_id: shengxinceshi_arena
+status: pending
+timestamp: null
+source_run_id: null
+analysis_summary:
+  data_type: null
+  sample_size: null
+  analysis_modules: []
+  total_evidence: 0
+  total_figures: 0
+  total_tables: 0
+quality_assessment:
+  data_quality: null
+  method_rigor: null
+  statistical_validity: null
+  reproducibility: null
+  novelty: null
+  clinical_value: null
+topic_assessment:
+  primary_topic: null
+  secondary_topic: null
+  potential_journals: []
+strengths: []
+weaknesses: []
+recommendations: []

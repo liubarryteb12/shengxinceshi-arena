@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:shengxinceshi-arena:journal-direction-package:1.0",
+  "type": "object",
+  "required": ["schema_version", "contract_id", "stage", "status", "topic_judgment", "journal_direction", "analysis_requirements", "writing_constraints", "typesetting_constraints"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "contract_id": {"const": "journal_direction_package"},
+    "stage": {"const": "P4-a"},
+    "status": {"enum": ["draft", "confirmed", "failed", "pending"]},
+    "topic_judgment": {"type": "object"},
+    "journal_direction": {"type": "object"},
+    "analysis_requirements": {"type": "object"},
+    "writing_constraints": {"type": "object"},
+    "typesetting_constraints": {"type": "object"},
+    "risks": {"type": "array"},
+    "uncertainties": {"type": "array"},
+    "pending_items": {"type": "array"}
+  },
+  "additionalProperties": true
+}

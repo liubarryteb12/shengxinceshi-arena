@@ -1,0 +1,49 @@
+schema_version: "1.0"
+status: active
+principles:
+  - id: MP01
+    name: 数字唯一来源
+    applies_to: [P1, P2, P3, P4]
+  - id: MP02
+    name: 三态判定
+    applies_to: [P1, P2, P3, P4]
+    states: [pass, fail, N/A]
+  - id: MP03
+    name: 变异测试
+    applies_to: [P1, P2, P3, P4]
+  - id: MP04
+    name: 自指处理
+    applies_to: [P1, P2, P3, P4]
+  - id: MP05
+    name: 单一入口
+    applies_to: [P1, P2, P3, P4]
+  - id: MP06
+    name: 第 11 条陷阱
+    applies_to: [P1, P2, P3, P4]
+  - id: MP07
+    name: 先红后绿
+    applies_to: [P1, P2, P3, P4]
+  - id: MP08
+    name: 唯一真源
+    applies_to: [P1, P2, P3, P4]
+  - id: MP09
+    name: 排版不得升级 claim
+    applies_to: [P2, P3]
+  - id: MP10
+    name: 措辞强度不超过证据上限
+    applies_to: [P2, P3]
+  - id: MP11
+    name: 双轨行距
+    applies_to: [P3]
+  - id: MP12
+    name: 图片先分流再谈参数
+    applies_to: [P1, P3]
+  - id: MP13
+    name: 能用矢量就用矢量
+    applies_to: [P1, P3]
+  - id: MP14
+    name: 图题在图下、表题在表上
+    applies_to: [P2, P3]
+  - id: MP15
+    name: 导出前参考文献转纯文本
+    applies_to: [P2, P3]

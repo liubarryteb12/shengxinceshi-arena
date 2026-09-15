@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:shengxinceshi-arena:p2-to-p3-manuscript:1.0",
+  "type": "object",
+  "required": ["schema_version", "contract_id", "project_id", "status", "structure", "files", "figures", "tables", "references", "declarations"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "contract_id": {"const": "p2_to_p3_manuscript"},
+    "status": {"enum": ["pending", "draft", "confirmed", "success", "failed"]},
+    "structure": {"type": "object"},
+    "files": {"type": "object"},
+    "figures": {"type": "array"},
+    "tables": {"type": "array"},
+    "references": {"type": "object"},
+    "declarations": {"type": "object"}
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,11 @@
+schema_version: "1.0"
+status: skeleton
+roles:
+  - code_logic
+  - bioinformatics_method
+  - code_reproducibility
+  - pipeline_integration
+pass_policy:
+  no_major: true
+  majority_passed: true
+  user_override_allowed: true

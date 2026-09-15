@@ -1,0 +1,20 @@
+# Local/runtime data
+inputs/raw/*
+inputs/metadata/*
+inputs/external/*
+!inputs/raw/.gitkeep
+!inputs/metadata/.gitkeep
+!inputs/external/.gitkeep
+
+# Rebuildable caches and local environments
+**/cache/
+**/__pycache__/
+*.pyc
+.venv/
+.Rhistory
+.Rproj.user/
+
+# Temporary exports and editor files
+*.tmp
+*.swp
+.DS_Store

@@ -1,0 +1,898 @@
+# P1–P4 端到端验证 · 总指令（AI Agent 执行版）
+
+> 版本：1.0
+> 用途：一并发给 Agent，Agent 按此驱动云端 GitHub Actions 执行端到端验证
+> 原则：完全按对应论文的分析思路走，不做自定义；只验证体系能否正常工作
+
+---
+
+## 0. 总任务定义
+
+```yaml
+task:
+  name: P1-P4 端到端验证
+  goal: 验证 P1-P4 体系在真实 GEO 数据上能否端到端跑通
+  constraints:
+    - 数据集样本量 < 12（基础集）
+    - 完全按对应论文的分析思路执行
+    - 不做自定义分析
+    - 所有数据由云端 GitHub Actions 自动下载
+    - 所有判据必须能过消融实验
+  environment:
+    execution: GitHub Actions（公开仓库，无时间限制）
+    workspace: 云端 Linux
+    local_agent: 用户本地（负责驱动）
+    data_source: NCBI GEO FTP
+  outputs:
+    - 每阶段产出对应接口文件
+    - 每阶段跑通变异测试
+    - 最终产出测试报告
+  success_criteria:
+    - P4-a → P1 → P2 → P3 → P4-b 全链路跑通
+    - 所有接口文件字段完整
+    - 所有 A 档判据先 FAIL 后 PASS
+    - 休眠比例 ≤ 20%
+    - GLOBAL 占比 ≤ 10%
+```
+
+---
+
+## 1. 执行总流程
+
+```text
+[阶段 0] 环境初始化
+    ↓
+[阶段 1] P4-a 题材初判
+    ↓
+[阶段 2] P1 生信分析（云端 GitHub Actions）
+    ↓
+[阶段 3] P2 SCI 写作
+    ↓
+[阶段 4] P3 文稿自动排版
+    ↓
+[阶段 5] P4-b 成稿复审
+    ↓
+[阶段 6] 端到端闭环验证
+    ↓
+[阶段 7] 测试报告
+```
+
+**执行顺序规则**：
+
+1. 严格按阶段 0 → 7 顺序执行。
+2. 每个阶段完成后，检查验证点，全通过才进入下一阶段。
+3. 任何阶段失败，记录错误，不跳过，不掩盖。
+4. 基础集先跑通，再跑进阶集。
+
+---
+
+## 2. 数据集清单
+
+### 2.1 基础集（先跑，验证基础功能）
+
+```yaml
+basic_datasets:
+  - id: GSE7451
+    priority: 1
+    title: 干燥综合征唾液腺表达谱
+    samples: 10 vs 10（平衡）
+    platform: GPL570 (Affymetrix HG-U133 Plus 2.0)
+    file_size: ~5-10 MB
+    paper:
+      citation: Hu S, et al. Salivary Proteomic and Genomic Biomarkers for Primary Sjögren's Syndrome. Arthritis Rheum. 2007.
+      analysis_pipeline:
+        - 数据下载：GEO FTP 下载 GSE7451 原始 CEL 文件 + 样本信息
+        - 预处理：RMA 算法（背景校正 + 分位数标准化）
+        - 探针过滤：剔除 >75% 样本中 absent 的探针集
+        - 差异表达：limma 包，两组间比较，BH 校正 FDR
+        - 富集分析：MAPPFinder 通路富集
+        - 验证：qRT-PCR 候选标志物验证（P1 不做）
+    validation_focus:
+      - P1 基础模块（下载/标准化/差异/富集/导出）
+      - T21 判据：10 vs 10 平衡，判 pass
+      - 小样本警告：样本量小，应给出 warning
+
+  - id: GSE2379
+    priority: 2
+    title: 下咽头颈鳞癌表达谱
+    samples: 34 肿瘤 vs 4 正常（严重不平衡）
+    platform: GPL91 (Affymetrix HG-U95A)
+    file_size: ~2-5 MB
+    paper:
+      citation: Ginos MA, et al. Identification of a gene expression signature associated with recurrent disease in squamous cell carcinoma of the head and neck. Cancer Res. 2004.
+      analysis_pipeline:
+        - 数据下载：GEO FTP 下载 GSE2379 原始数据 + 临床信息
+        - 预处理：MAS5.0 或 RMA 标准化
+        - 差异表达：limma 或 SAM，肿瘤 vs 正常
+        - 生存分析：Cox 比例风险模型，筛选复发相关基因签名
+    validation_focus:
+      - T21 判据：4 vs 34 严重不平衡，对照 n=4 < 6，应触发 FAIL
+      - 体系应拒绝据此进行统计推断
+      - 验证防错机制有效性
+
+  - id: GSE10036
+    priority: 3
+    title: 最小样本量测试集
+    samples: 4
+    platform: GPL9062
+    file_size: <1 MB
+    paper:
+      citation: 见 GEO 页面
+    validation_focus:
+      - 最小闭环测试
+      - T21 判据：n=4 < 6，直接判 FAIL
+      - 体系应拒绝任何统计分析
+```
+
+### 2.2 进阶集（基础跑通后，验证进阶模块）
+
+```yaml
+advanced_datasets:
+  - id: GSE251926
+    priority: 4
+    title: Open-ST 空间转录组
+    samples: 多组织切片（小鼠脑 / 原发肿瘤 / 转移淋巴结）
+    platform: Open-ST（基于测序的空间转录组）
+    file_size: 中等（切片数据）
+    paper:
+      citation: Schott M, et al. Open-ST: High-resolution spatial transcriptomics in 3D. Cell. 2024.
+      analysis_pipeline:
+        - 数据下载：GEO 下载 GSE251926 原始测序数据 + 空间坐标
+        - 上游处理：spacemake 比对、定量、空间 barcode 提取
+        - 下游分析：openst + STIM，3D 空间重建、细胞类型注释
+        - 可视化：3D 空间转录组图谱
+    validation_focus:
+      - P1 进阶模块：R+Python 联合分析
+      - T19 判据：空间转录组被激活
+      - T24 判据：跨物种验证 vs 同队列 split
+
+  - id: GSE255370
+    priority: 5
+    title: cuprizone 小鼠模型多组学
+    samples: 多组学（bulk + snRNA + spatial）
+    platform: 多组学整合
+    file_size: 较大
+    paper:
+      citation: 见 GEO 页面（2024-11-06 发布）
+      analysis_pipeline:
+        - 数据下载：分别下载 bulk RNA-seq、snRNA-seq、空间转录组
+        - 独立分析：
+            - bulk：DESeq2 差异表达
+            - snRNA：Seurat/scanpy 聚类、细胞类型注释
+            - spatial：空间分析
+        - 整合分析：三种组学结果整合，识别关键细胞类型和分子机制
+    validation_focus:
+      - P1 进阶模块：多组学整合
+      - T15 判据：单细胞 QC
+      - T16 判据：伪重复（推断单位 = donor）
+      - T19 判据：空间转录组
+      - T35/T36 判据：多组学工具偏倚 / 整合增量
+
+  - id: GSE292083
+    priority: 6
+    title: 颅咽管瘤单细胞转录组
+    samples: 单细胞（donor 数待确认）
+    platform: 10x Genomics scRNA-seq
+    file_size: 中等
+    paper:
+      citation: 见 GEO 页面（2025-03-20 发布）
+      analysis_pipeline:
+        - 数据下载：GEO 下载 10x 格式数据
+        - 分析：Seurat/scanpy 标准流程（QC → 标准化 → 降维 → 聚类 → 注释 → 差异表达）
+    validation_focus:
+      - P1 进阶模块：单细胞分析
+      - T16 判据：推断单位必须为 donor
+```
+
+---
+
+## 3. 执行指令
+
+### 3.1 阶段 0 · 环境初始化
+
+```yaml
+stage: 0
+name: 环境初始化
+executor: GitHub Actions
+
+actions:
+  1. 创建工作空间目录树：
+     - inputs/
+     - analysis/
+     - 02_writing/
+     - 03_typesetting/
+     - 04_journal/
+     - handoff/
+     - checkpoints/
+     - next_tasklist/
+     - logs/
+  2. 初始化 workspace.yaml
+  3. 生成 analysis/_index/dormant_registry.yaml
+  4. 生成 04_journal/dormant_registry.yaml
+  5. 准备 GitHub Actions workflow 文件
+
+outputs:
+  - workspace.yaml
+  - dormant_registry.yaml（两份）
+
+verify:
+  - 目录树完整
+  - 所有休眠项已登记
+  - 元原则已写入配置
+```
+
+### 3.2 阶段 1 · P4-a 题材初判
+
+```yaml
+stage: 1
+name: P4-a 题材初判
+executor: 本地 Agent
+inputs:
+  - 数据集 GEO 编号
+  - 数据集标题与摘要
+
+actions:
+  1. 读数据集元信息
+  2. 题材初判：
+     - primary_topic
+     - secondary_topic
+     - study_type
+     - novelty_level
+     - data_type
+     - sample_size
+  3. 期刊方向预判：
+     - candidate_directions（≥2 个）
+     - target_tier
+     - likely_publishers
+     - excluded（带理由）
+  4. 分析要求（analysis_requirements）：
+     - required_modules
+     - optional_modules
+     - minimum_evidence
+     - data_requirements
+  5. 写作约束（writing_constraints）：
+     - structure（S1/S2-a/S2-b/S2-c）
+     - abstract_type
+     - abstract_limit
+     - keywords_count
+     - reference_style
+     - reference_limit
+     - figure_limit
+     - table_limit
+     - language
+     - audience
+  6. 排版约束（typesetting_constraints）：
+     - publisher_system
+     - template
+     - line_spacing
+     - line_numbers
+     - figure_width_single
+     - figure_width_double
+  7. 产出 journal_direction_package.yaml
+  8. 用户确认
+
+outputs:
+  - 04_journal/journal_direction_package.yaml
+
+verify:
+  - A1 题材初判完整
+  - A2 期刊方向 ≥2 个
+  - A3 排除项有理由
+  - A4 分析要求 ≥1 条
+  - A5 写作约束完整
+  - A6 排版约束完整
+  - A7 用户已确认
+```
+
+### 3.3 阶段 2 · P1 生信分析（云端执行）
+
+```yaml
+stage: 2
+name: P1 生信分析
+executor: GitHub Actions（云端）
+
+inputs:
+  - 期刊方向包：04_journal/journal_direction_package.yaml
+  - 数据集 GEO 编号
+  - 对应论文的分析思路
+
+actions:
+  # 第 0 步：工作空间初始化与数据迁移
+  0.1 云端自动下载数据集：
+      - 基础集下载路径：
+        - GSE7451: https://ftp.ncbi.nlm.nih.gov/geo/series/GSE7nnn/GSE7451/suppl/
+        - GSE2379: https://ftp.ncbi.nlm.nih.gov/geo/series/GSE2nnn/GSE2379/suppl/
+        - GSE10036: https://ftp.ncbi.nlm.nih.gov/geo/series/GSE10nnn/GSE10036/suppl/
+      - 进阶集下载路径：
+        - GSE251926: https://ftp.ncbi.nlm.nih.gov/geo/series/GSE251nnn/GSE251926/suppl/
+        - GSE255370: https://ftp.ncbi.nlm.nih.gov/geo/series/GSE255nnn/GSE255370/suppl/
+        - GSE292083: https://ftp.ncbi.nlm.nih.gov/geo/series/GSE292nnn/GSE292083/suppl/
+  0.2 数据迁移到 inputs/raw/
+  0.3 校验迁移完整性（checksum、文件数、大小）
+  0.4 写入 migration_log.yaml
+  0.5 执行数据可用性分析：
+      - 识别数据类型（微阵列 / RNA-seq / 单细胞 / 空间）
+      - 识别样本量
+      - 识别分组
+      - 列出可用分析
+      - 列出不可用分析（带理由）
+      - 写入 data_availability.yaml
+
+  # 第 1 步：模块注册
+  1.1 按对应论文分析思路设计模块
+  1.2 生成 module.yaml（每个模块）
+  1.3 生成脚本（R / Python）
+  1.4 多模型复审（4 角色）
+  1.5 注册到 module_index.yaml
+
+  # 第 2 步：用户选模块与顺序
+  2.1 启动 Streamlit
+  2.2 模拟用户选择模块
+  2.3 生成 user_draft.yaml
+
+  # 第 3 步：依赖检查与顺序建议
+  3.1 检查依赖是否满足
+  3.2 检查依赖是否循环
+  3.3 生成顺序建议
+  3.4 写入 dependency_check.yaml
+
+  # 第 4 步：流程草案与确认
+  4.1 生成 flow_draft.yaml
+  4.2 用户确认
+  4.3 生成 flow_confirmed.yaml
+
+  # 第 5 步：执行引擎
+  5.1 逐个 step 执行
+  5.2 每步完成后：
+      - 写 manifest.yaml
+      - 写 handoff.md / diff.md / checkpoint.yaml / next_tasklist.md
+      - 执行质控检查
+      - 写 qc_report.yaml
+  5.3 生成图片（按 P3 规格前置）：
+      - 五格式齐全（pdf/png/tiff/jpg/svg）
+      - 显微图 600 dpi
+      - 分析图矢量优先
+
+  # 第 6 步：记录、质控、结果结构化
+  6.1 结果清单
+  6.2 结果标记（对应哪个分析、哪个参数、哪张图、哪个结论）
+  6.3 分门别类存储
+
+  # 第 7 步：生成 P1 接口文件
+  7.1 p1_to_p2_evidence.yaml
+  7.2 p1_to_p4_quality.yaml
+  7.3 result_index.yaml
+  7.4 figure_index.yaml
+
+outputs:
+  - analysis/outputs/{module_id}/manifest.yaml
+  - analysis/outputs/{module_id}/records/（四件套）
+  - analysis/_index/p1_to_p2_evidence.yaml
+  - analysis/_index/p1_to_p4_quality.yaml
+  - analysis/_index/figure_index.yaml
+  - analysis/_runs/mutation_results.json
+
+verify:
+  - 数据下载成功
+  - 数据可用性分析正确
+  - 模块注册成功
+  - 执行引擎跑通
+  - manifest 完整
+  - 四件套完整
+  - P1 接口文件完整
+  - 图片五格式齐全（Q1）
+  - 变异测试跑通（先 FAIL 后 PASS）
+  - T21 判据按预期触发（基础集不同数据集应给出不同判定）
+```
+
+### 3.4 阶段 3 · P2 SCI 写作
+
+```yaml
+stage: 3
+name: P2 SCI 写作
+executor: 本地 Agent
+
+inputs:
+  - P1 接口：analysis/_index/p1_to_p2_evidence.yaml
+  - P1 handoff：analysis/outputs/{module_id}/records/handoff.md
+  - 期刊方向包：04_journal/journal_direction_package.yaml
+  - 定制需求：用户填写 8 项（如未填，退化为 L0/L1）
+
+actions:
+  1. 读 P1 接口文件
+  2. 读期刊方向包
+  3. 读定制需求
+  4. 判断输出级别：
+     - L0：无需求 → 一句话卖点 + 链条顺序 + 章节骨架标题
+     - L1：给了研究问题/终点/期刊 → 各节要点 + 图序占位 + 主张-锚对应
+     - L2：给了定制需求 8 项 → 走 WP-1~9 全量
+  5. 如果 L2：走 WP-1~9 九节点：
+     - WP-0 素材就绪
+     - WP-CORE 逻辑链 P0–P4
+     - WP-4 方法
+     - WP-5 结果
+     - WP-6 讨论
+     - WP-7 参考文献
+     - WP-2 摘要（首句 == P1）
+     - WP-3 背景（调 research_survey_skill）
+     - WP-1 标题（最后定稿）
+     - WP-8 去 AI 味
+     - WP-9 三格式导出
+  6. NC-1~7 一致性检查
+  7. 多模型复审
+  8. 修订
+  9. 生成 P2 接口文件
+
+outputs:
+  - 02_writing/manuscript/current/main.docx
+  - 02_writing/refs/refs.bib
+  - 02_writing/p2_to_p3_manuscript.yaml
+  - 02_writing/p2_to_p4b_quality.yaml
+  - 02_writing/review/review_summary.yaml
+  - 02_writing/_runs/mutation_results.json
+
+verify:
+  - WP-1~9 全部跑通
+  - NC-1~7 全部通过
+  - 结构序 ∈ {S1, S2-a, S2-b, S2-c}
+  - 声明块 8 项齐全
+  - 措辞纪律无升级
+  - 数字全部锚定 P1 台账
+  - 变异测试跑通（先 FAIL 后 PASS）
+```
+
+### 3.5 阶段 4 · P3 文稿自动排版
+
+```yaml
+stage: 4
+name: P3 文稿自动排版
+executor: 本地 Agent + GitHub Actions
+
+inputs:
+  - P2 接口：02_writing/p2_to_p3_manuscript.yaml
+  - 用户模板：如无则用通用安全格式
+  - 期刊方向包：04_journal/journal_direction_package.yaml
+
+actions:
+  1. 读 P2 接口
+  2. 读期刊方向包
+  3. 读用户模板
+  4. 套用模板
+  5. 排版：
+     - 双轨行距（审稿版双倍 + 行号；安全版 1.5 倍无行号）
+     - 中文左对齐 + wordWrap='CJK'
+     - 图件宽度 ≤160mm
+     - 参考文献一条一段 + 悬挂缩进
+  6. 出图：
+     - 五格式齐全
+     - 图片参数卡（显微 600 dpi，线条 1200 dpi）
+     - 色盲友好
+  7. 导出 PDF（字体全嵌入）
+  8. 运行排版守卫（T1–T69）
+  9. 运行出图守卫（F1–F29）
+  10. 运行降级守卫（D1–D14）
+  11. 生成检查报告
+  12. 生成投稿包
+
+outputs:
+  - 03_typesetting/output/manuscript.pdf
+  - 03_typesetting/output/manuscript_审稿版.docx
+  - 03_typesetting/output/manuscript_安全版.docx
+  - 03_typesetting/output/submission_package.zip
+  - 03_typesetting/check_report.md
+  - 03_typesetting/_runs/mutation_results.json
+
+verify:
+  - 排版三铁律通过
+  - 字体纪律三条通过
+  - 结构序判定通过
+  - 五格式齐全
+  - 检查报告完整
+  - 变异测试跑通（先 FAIL 后 PASS）
+```
+
+### 3.6 阶段 5 · P4-b 成稿复审
+
+```yaml
+stage: 5
+name: P4-b 成稿质量与投稿定位复审
+executor: 本地 Agent
+
+inputs:
+  - P1 接口：analysis/_index/p1_to_p4_quality.yaml
+  - P2 接口：02_writing/p2_to_p4b_quality.yaml
+  - P3 产出：03_typesetting/check_report.md + submission_package.zip
+  - 期刊方向包：04_journal/journal_direction_package.yaml
+
+actions:
+  1. 读 P1/P2/P3 产出
+  2. 读期刊方向包
+  3. 成稿质量评估（8 维度）：
+     - narrative_completeness
+     - evidence_consistency
+     - method_rigor
+     - statistical_validity
+     - writing_quality
+     - figure_quality
+     - novelty
+     - clinical_value
+  4. 与 P4-a 预估对比
+  5. 期刊匹配度评分（6 维度）：
+     - scope_fit
+     - tier_fit
+     - format_fit
+     - policy_fit
+     - oa_fit
+     - apc_fit
+  6. 掠夺性期刊筛查
+  7. 产出推荐期刊列表（1–3 个）
+  8. 产出投稿顺序
+  9. 产出修改建议（如不匹配）
+  10. 产出反馈路径（如不匹配）
+
+outputs:
+  - 04_journal/quality_assessment.yaml
+  - 04_journal/match_score.yaml
+  - 04_journal/recommended_journals.yaml
+  - 04_journal/submission_order.yaml
+  - 04_journal/predatory_check.yaml
+  - 04_journal/feedback.yaml（如有）
+  - 04_journal/_runs/mutation_results.json
+
+verify:
+  - B1 质量评估完整
+  - B2 匹配评分完整
+  - B3 推荐期刊 1–3 个
+  - B4 投稿顺序完整
+  - B5 掠夺性筛查已执行
+  - B6 反馈路径已给出
+  - 变异测试跑通（先 FAIL 后 PASS）
+```
+
+### 3.7 阶段 6 · 端到端闭环验证
+
+```yaml
+stage: 6
+name: 端到端闭环验证
+executor: 本地 Agent
+
+actions:
+  1. 按阶段 1–5 顺序执行
+  2. 检查接口矩阵：
+     - P4-a 输出被 P1 读取（I1）
+     - P4-a 输出被 P2 读取（I2）
+     - P4-a 输出被 P3 读取（I3）
+     - P4-b 读取 P1 产出（I4）
+     - P4-b 读取 P2 产出（I5）
+     - P4-b 读取 P3 产出（I6）
+     - P4-b 反馈路径已给出（I7）
+  3. 检查闭环机制：
+     - P4-b 与 P4-a 对比
+     - 不匹配给出反馈路径
+     - 反馈能回到 P1/P2/P3
+  4. 汇总变异测试结果：
+     - 所有 A 档判据至少 1 个变异用例
+     - 每个变异用例能抓到
+     - 每个 A 档判据先 FAIL 后 PASS
+  5. 汇总休眠比例（≤ 20%）
+  6. 汇总 GLOBAL 占比（≤ 10%）
+
+outputs:
+  - 测试报告.md
+
+verify:
+  - P4-a → P1 → P2 → P3 → P4-b 全链路跑通
+  - 接口文件全部生成
+  - 变异测试全部通过
+  - 闭环反馈路径已给出
+```
+
+### 3.8 阶段 7 · 测试报告
+
+```yaml
+stage: 7
+name: 测试报告
+executor: 本地 Agent
+
+actions:
+  1. 汇总各阶段结果
+  2. 汇总判据通过率
+  3. 汇总变异测试通过率
+  4. 汇总休眠比例
+  5. 汇总 GLOBAL 占比
+  6. 列出未通过项（如有）
+  7. 列出待改进项（如有）
+  8. 生成最终测试报告
+
+outputs:
+  - 测试报告.md
+
+verify:
+  - 报告完整
+  - 所有数据可回溯
+  - 未通过项如实列出
+```
+
+---
+
+## 4. 数据集验证矩阵
+
+```yaml
+validation_matrix:
+  # 基础集
+  GSE7451:
+    stage: 基础
+    verifies:
+      - P1 基础模块全流程
+      - T21 判据（10 vs 10 平衡 → pass）
+      - 小样本警告
+      - 芯片标准化
+      - limma 差异表达
+      - MAPPFinder 富集
+    expected:
+      - 所有模块执行成功
+      - T21 判 pass
+      - 小样本警告出现
+
+  GSE2379:
+    stage: 基础
+    verifies:
+      - P1 基础模块（另一平台）
+      - T21 判据（34 vs 4 严重不平衡 → FAIL）
+      - 防错机制
+    expected:
+      - T21 判 FAIL
+      - 体系拒绝统计推断
+      - 错误如实报告
+
+  GSE10036:
+    stage: 基础
+    verifies:
+      - 最小闭环
+      - T21 判据（n=4 < 6 → FAIL）
+    expected:
+      - T21 判 FAIL
+      - 体系拒绝统计分析
+
+  # 进阶集
+  GSE251926:
+    stage: 进阶
+    verifies:
+      - P1 R+Python 联合模块
+      - T19 判据（空间转录组）
+      - T24 判据（跨物种验证）
+    expected:
+      - R+Python 联合跑通
+      - T19 激活
+      - T24 正确判定
+
+  GSE255370:
+    stage: 进阶
+    verifies:
+      - P1 多组学整合
+      - T15 判据（单细胞 QC）
+      - T16 判据（伪重复）
+      - T19 判据（空间转录组）
+      - T35/T36 判据（多组学整合）
+    expected:
+      - 多组学整合跑通
+      - 所有相关判据激活
+
+  GSE292083:
+    stage: 进阶
+    verifies:
+      - P1 单细胞分析
+      - T16 判据（推断单位 = donor）
+    expected:
+      - 单细胞流程跑通
+      - T16 正确判定
+```
+
+---
+
+## 5. GitHub Actions Workflow 模板
+
+```yaml
+# .github/workflows/end_to_end_validation.yml
+name: P1-P4 End-to-End Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      dataset_id:
+        description: 'GEO dataset ID (e.g., GSE7451)'
+        required: true
+      dataset_stage:
+        description: 'basic / advanced'
+        required: true
+      paper_pipeline:
+        description: 'Analysis pipeline from paper (JSON)'
+        required: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.3.1'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
+
+      - name: Install R packages
+        run: |
+          Rscript -e 'install.packages(c("BiocManager", "jsonlite", "yaml"))'
+          Rscript -e 'BiocManager::install(c("GEOquery", "limma", "affy", "DESeq2", "clusterProfiler"))'
+
+      - name: Install Python deps
+        run: |
+          pip install -r requirements.txt
+          pip install GEOparse pandas numpy matplotlib seaborn
+
+      - name: Download dataset
+        run: |
+          python scripts/download_geo.py \
+            --dataset ${{ inputs.dataset_id }} \
+            --output inputs/raw/
+
+      - name: Run P1 analysis
+        run: |
+          python scripts/run_p1.py \
+            --workspace . \
+            --dataset ${{ inputs.dataset_id }} \
+            --pipeline '${{ inputs.paper_pipeline }}'
+
+      - name: Run mutation test
+        run: |
+          python scripts/guard_selftest.py
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: results-${{ inputs.dataset_id }}
+          path: |
+            analysis/outputs/
+            analysis/_index/
+            analysis/_runs/
+            02_writing/
+            03_typesetting/
+            04_journal/
+```
+
+---
+
+## 6. 判据触发预期
+
+```yaml
+criteria_expectations:
+  T21（组别样本量下限与平衡）:
+    - GSE7451: 10 vs 10 → pass（或 warn，取决于阈值）
+    - GSE2379: 34 vs 4 → fail（对照 n=4 < 6）
+    - GSE10036: n=4 → fail（n < 6）
+    - GSE255370: 待确认
+    - GSE292083: 待确认
+
+  T15（单细胞 QC）:
+    - GSE255370: 激活
+    - GSE292083: 激活
+
+  T16（推断单位 = donor）:
+    - GSE255370: 激活
+    - GSE292083: 激活
+
+  T19（空间转录组）:
+    - GSE251926: 激活
+    - GSE255370: 激活
+
+  T24（验证集独立性）:
+    - GSE251926: 跨物种验证
+
+  T35/T36（多组学整合）:
+    - GSE255370: 激活
+```
+
+---
+
+## 7. 执行注意事项
+
+```yaml
+execution_notes:
+  do:
+    - 严格按论文分析思路走
+    - 每阶段验证点全通过才进入下一阶段
+    - 基础集先跑通，再跑进阶集
+    - 所有数据由 GitHub Actions 自动下载
+    - 失败如实报告，不掩盖
+    - 所有产出可回溯
+
+  dont:
+    - 不做自定义分析
+    - 不跳过任何阶段
+    - 不跳过任何验证点
+    - 不修改论文分析思路
+    - 不修改判据阈值
+    - 不手工填数字
+
+  failure_handling:
+    - 记录错误信息
+    - 不跳过失败项
+    - 报告给用户
+    - 等用户决定
+
+  data_source:
+    - 所有数据集从 NCBI GEO FTP 下载
+    - 下载路径：https://ftp.ncbi.nlm.nih.gov/geo/series/{GSExxx}nnn/{GSExxx}/suppl/
+    - 基础集优先（文件小，下载快）
+    - 进阶集按需（文件大，注意时间）
+
+  timeout:
+    - 基础集：单 job 60 分钟
+    - 进阶集：单 job 360 分钟
+    - 超过超时：取消，记录，不重试
+```
+
+---
+
+## 8. 参考文献
+
+```yaml
+references:
+  datasets:
+    - GSE7451: Hu S, et al. Salivary Proteomic and Genomic Biomarkers for Primary Sjögren's Syndrome. Arthritis Rheum. 2007.
+    - GSE2379: Ginos MA, et al. Identification of a gene expression signature associated with recurrent disease in squamous cell carcinoma of the head and neck. Cancer Res. 2004.
+    - GSE10036: 见 GEO 页面
+    - GSE251926: Schott M, et al. Open-ST: High-resolution spatial transcriptomics in 3D. Cell. 2024.
+    - GSE255370: 见 GEO 页面（2024-11-06 发布）
+    - GSE292083: 见 GEO 页面（2025-03-20 发布）
+
+  analysis_tools:
+    - limma: Ritchie ME, et al. Nucleic Acids Res. 2015;43(7):e47. DOI: 10.1093/nar/gkv007
+    - DESeq2: Love MI, et al. Genome Biol. 2014;15:550. DOI: 10.1186/s13059-014-0550-8
+    - GEOquery: Davis S, Meltzer PS. Bioinformatics. 2007;23(14):1846-1847. DOI: 10.1093/bioinformatics/btm254
+    - clusterProfiler: Yu G, et al. OMICS. 2012;16(5):284-287. DOI: 10.1089/omi.2011.0118
+    - Seurat: Stuart T, et al. Cell. 2019;177(7):1888-1902. DOI: 10.1016/j.cell.2019.05.031
+    - scanpy: Wolf FA, et al. Genome Biol. 2018;19:15. DOI: 10.1186/s13059-017-1382-0
+
+  methodology:
+    - TRIPOD: Collins GS, et al. Ann Intern Med. 2015;162(1):55-63.
+    - ARRIVE 2.0: Percie du Sert N, et al. PLoS Biol. 2020;18(7):e3000410.
+    - STROBE: von Elm E, et al. Ann Intern Med. 2007;147(8):573-577.
+    - PRISMA 2020: Page MJ, et al. BMJ. 2021;372:n71.
+
+  image_integrity:
+    - Rossner M, Yamada KM. J Cell Biol. 2004;166(1):11-15. DOI: 10.1083/jcb.200406019
+```
+
+---
+
+## 9. 执行完成标志
+
+```yaml
+completion:
+  all_stages_passed: true
+  all_datasets_validated: true
+  all_criteria_triggered: true
+  all_mutations_caught: true
+  dormant_ratio: ≤ 20%
+  global_ratio: ≤ 10%
+  final_report: 测试报告.md
+```
+
+---
+
+> 总指令结束。
+> Agent 收到此指令后，按阶段 0 → 7 顺序执行，基础集先跑，进阶集后跑，所有数据由 GitHub Actions 自动下载。

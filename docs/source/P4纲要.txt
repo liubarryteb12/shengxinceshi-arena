@@ -1,0 +1,1181 @@
+# P4 论文可投期刊分析工作流 工程规范
+
+> 版本：1.0
+> 定位：P4-a 题材初判 + P4-b 成稿复审，双阶段策略层
+> 核心纪律：期刊数据必须可验证，不得依赖 AI 记忆；每条规则必须能构造 FAIL 用例
+
+---
+
+## 目录
+
+1. 总览
+2. P4 双阶段定位
+3. P4-a 题材初判与期刊方向预判
+4. P4-b 成稿质量与投稿定位复审
+5. 期刊方向包定义
+6. 评价维度
+7. 期刊数据源与防幻觉
+8. 匹配算法
+9. 推荐期刊列表
+10. 投稿顺序
+11. 掠夺性期刊筛查
+12. 与 P1/P2/P3 的接口
+13. 消融实验设计
+14. 休眠登记
+15. 完整目录树
+16. 配置文件总览
+17. 用户干预点总览
+18. Agent 权限边界总览
+19. 规则总览
+
+---
+
+## 1. 总览
+
+### 1.1 P4 定位
+
+P4 不是简单查影响因子，而是**投稿策略层**：
+
+> 决定"这篇论文该往哪投、按什么规则写、按什么格式排、要不要补分析、投稿顺序是什么"。
+
+它在前端（P4-a）和后端（P4-b）各执行一次，中间被 P1/P2/P3 穿过。
+
+### 1.2 P4 在整体流程中的位置
+
+```text
+P4-a 题材初判与期刊方向预判
+  ↓ 期刊方向包（约束 P1/P2/P3）
+P1 生信分析
+  ↓ 证据
+P2 SCI 写作
+  ↓ 稿件
+P3 文稿自动排版
+  ↓ 投稿包
+P4-b 成稿质量与投稿定位复审
+  ↓ 推荐期刊列表 + 投稿顺序
+```
+
+### 1.3 P4 双阶段对比
+
+| 项 | P4-a | P4-b |
+|---|---|---|
+| 时机 | P1 之前 | P3 之后 |
+| 输入 | 研究想法、数据概况、初步结果、文献 | 完整稿件、图表、统计结果、排版稿 |
+| 目的 | 定方向、定深度、定期刊范围 | 定质量、定定位、定投稿顺序 |
+| 精度 | 粗筛，2–3 个方向 | 细选，1–3 个目标期刊 |
+| 输出 | 期刊方向包 | 推荐期刊列表 + 投稿顺序 |
+| 风险 | 判断偏了会影响全局 | 判断偏了只影响投稿策略 |
+| 数据源 | 期刊数据库 + 文献 | 期刊数据库 + 稿件实际质量 |
+
+### 1.4 P4 核心原则
+
+- 期刊数据必须可验证，不得依赖 AI 记忆。
+- P4-a 是猜方向，P4-b 是看实物。
+- P4 是策略层，不替代用户决策。
+- 每条规则必须能构造 FAIL 用例，否则不立。
+
+### 1.5 P4 完整流程
+
+```text
+【P4-a 阶段】
+读研究想法、数据概况、初步结果
+  ↓
+题材初判
+  ↓
+期刊方向预判
+  ↓
+产出期刊方向包
+  ↓
+交给 P1/P2/P3
+
+【P1 → P2 → P3】
+
+【P4-b 阶段】
+读 P1 证据 + P2 稿件 + P3 投稿包
+  ↓
+成稿质量评估
+  ↓
+期刊匹配度评分
+  ↓
+掠夺性期刊筛查
+  ↓
+产出推荐期刊列表 + 投稿顺序
+  ↓
+交给用户
+```
+
+---
+
+## 2. P4 双阶段定位
+
+### 2.1 P4-a：策略前馈
+
+P4-a 是**策略前馈**，不是执行。它回答：
+
+- 这篇东西大概是什么题材？
+- 大概是什么故事？
+- 大概什么层级？
+- 可能投什么方向？
+- P1 要做多深？
+- P2 要按什么风格写？
+- P3 要按什么格式排？
+
+### 2.2 P4-b：策略后验
+
+P4-b 是**策略后验**，不是执行。它回答：
+
+- 实际的分析质量如何？
+- 实际的叙事完整度如何？
+- 实际的创新性如何？
+- 实际的图表质量如何？
+- 实际的方法严谨度如何？
+- 能投什么层级的期刊？
+- 投稿顺序是什么？
+
+### 2.3 两阶段的共享基础
+
+P4-a 和 P4-b 共享：
+
+- 同一套期刊数据库
+- 同一套匹配逻辑
+- 同一套评价标准
+- 同一套防幻觉机制
+
+只是输入不同、精度不同、作用不同。
+
+---
+
+## 3. P4-a 题材初判与期刊方向预判
+
+### 3.1 输入
+
+| 来源 | 输入 | 用途 |
+|---|---|---|
+| 用户 | 研究想法 | 判断题材 |
+| 用户 | 数据概况 | 判断分析深度 |
+| 用户 | 初步结果 | 判断创新性 |
+| 用户 | 文献调研 | 判断定位 |
+| 系统 | 期刊数据库 | 匹配方向 |
+
+### 3.2 流程
+
+```text
+读用户输入
+  ↓
+题材初判（primary_topic / secondary_topic / study_type / novelty_level）
+  ↓
+期刊方向预判（candidate_directions / target_tier / likely_publishers / excluded）
+  ↓
+分析要求（required_modules / optional_modules / minimum_evidence / data_requirements）
+  ↓
+写作约束（structure / abstract / keywords / reference / figure / table / language / audience）
+  ↓
+排版约束（publisher_system / template / line_spacing / line_numbers / figure_width）
+  ↓
+产出期刊方向包
+  ↓
+用户确认
+  ↓
+交给 P1/P2/P3
+```
+
+### 3.3 输出：期刊方向包
+
+见 §5。
+
+### 3.4 粗筛规则
+
+| 规则 | 说明 |
+|---|---|
+| 精度 | 粗筛，2–3 个方向 |
+| 不用精确影响因子 | 用区间（如 Q2-Q3） |
+| 不用精确审稿周期 | 用区间 |
+| 不做最终决定 | 只是方向 |
+| 用户可覆盖 | 用户决定最终方向 |
+
+### 3.5 检测
+
+| # | 判据 | 检测 | 变异用例 |
+|---|---|---|---|
+| A1 | 题材初判完整 | 字段检查 | 删字段 |
+| A2 | 期刊方向 ≥2 个 | 计数 | 改 1 个 |
+| A3 | 排除项有理由 | 理由检查 | 留空 |
+| A4 | 分析要求 ≥1 条 | 计数 | 改 0 |
+| A5 | 写作约束完整 | 字段检查 | 删字段 |
+| A6 | 排版约束完整 | 字段检查 | 删字段 |
+| A7 | 用户已确认 | 确认标记 | 未确认 |
+
+---
+
+## 4. P4-b 成稿质量与投稿定位复审
+
+### 4.1 输入
+
+| 来源 | 输入 | 用途 |
+|---|---|---|
+| P1 | `p1_to_p4_quality.yaml` | 分析质量 |
+| P2 | `p2_to_p4b_quality.yaml` | 稿件质量 |
+| P3 | `check_report.md` | 排版质量 |
+| P3 | `submission_package.zip` | 投稿包 |
+| 系统 | 期刊数据库 | 匹配 |
+
+### 4.2 流程
+
+```text
+读 P1/P2/P3 产出
+  ↓
+成稿质量评估（narrative / evidence / method / statistical / writing / figure / novelty / clinical）
+  ↓
+期刊匹配度评分（scope_fit / tier_fit / format_fit / policy_fit）
+  ↓
+掠夺性期刊筛查
+  ↓
+产出推荐期刊列表（1–3 个）
+  ↓
+产出投稿顺序
+  ↓
+产出修改建议（如不匹配）
+  ↓
+用户确认
+```
+
+### 4.3 输出
+
+| 输出 | 用途 |
+|---|---|
+| 推荐期刊列表 | 1–3 个目标 |
+| 投稿顺序 | 首选 / 备选 / 兜底 |
+| 质量评估 | 各维度评分 |
+| 修改建议 | 如不匹配 |
+| 反馈 | 回 P1/P2/P3 补分析或改叙事 |
+
+### 4.4 反馈机制
+
+P4-b 发现不匹配时，反馈给谁：
+
+| 情况 | 反馈到 |
+|---|---|
+| 质量比预想低 | P1 补分析 / P2 调整叙事 |
+| 质量比预想高 | 提升目标期刊层级 |
+| 格式不匹配 | P3 换模板 |
+| 创新性不足 | P2 强化创新点 |
+| 方法严谨度不足 | P1 补方法学分析 |
+
+### 4.5 检测
+
+| # | 判据 | 检测 | 变异用例 |
+|---|---|---|---|
+| B1 | 质量评估完整 | 字段检查 | 删字段 |
+| B2 | 期刊匹配度评分完整 | 字段检查 | 删字段 |
+| B3 | 推荐期刊 1–3 个 | 计数 | 改 5 个 |
+| B4 | 投稿顺序完整 | 字段检查 | 删顺序 |
+| B5 | 掠夺性筛查已执行 | 标记检查 | 跳过 |
+| B6 | 反馈路径已给出 | 字段检查 | 删反馈 |
+| B7 | 用户已确认 | 确认标记 | 未确认 |
+
+---
+
+## 5. 期刊方向包定义
+
+### 5.1 它是什么
+
+期刊方向包是 **P4-a 的输出**，是 P4-a 交给 P1/P2/P3 的**约束包**。
+
+一句话：
+
+> 在分析还没开始前，P4-a 先粗判"这篇大概是什么题材、什么方向、可能投什么层级的期刊"，把它固化成一份约束文件，让 P1/P2/P3 按这个方向做。
+
+它**不是**最终期刊决定（那是 P4-b 的事），而是**方向性初判**。
+
+### 5.2 完整字段结构
+
+文件：`04_journal/journal_direction_package.yaml`
+
+```yaml
+package_id: jdp_20260915_100000
+timestamp: 2026-09-15T10:00:00+08:00
+stage: P4-a
+status: confirmed
+confirmed_by: user
+
+# ========== 题材初判 ==========
+topic_judgment:
+  primary_topic: 转录组差异表达与富集分析
+  secondary_topic: 细胞周期通路
+  study_type: 生信分析（无实验验证）
+  novelty_level: medium
+  data_type: transcriptomics
+  sample_size: 24
+
+# ========== 期刊方向 ==========
+journal_direction:
+  candidate_directions:
+    - 生信方法学
+    - 分子生物学
+    - 肿瘤生物学
+  target_tier: Q2-Q3
+  likely_publishers:
+    - BMC
+    - Elsevier
+    - Frontiers
+  excluded:
+    - direction: Nature 系
+      reason: 创新性不足
+    - direction: Cell 系
+      reason: 缺少实验验证
+
+# ========== 分析要求（约束 P1） ==========
+analysis_requirements:
+  required_modules:
+    - quality_control
+    - differential_expression
+    - enrichment
+  optional_modules:
+    - survival_analysis
+    - external_validation
+  minimum_evidence:
+    - 至少一个主图
+    - 至少一个验证分析
+  data_requirements:
+    - 样本量 ≥ 6
+    - 需外部验证集
+
+# ========== 写作约束（约束 P2） ==========
+writing_constraints:
+  structure: S1
+  abstract_type: structured
+  abstract_limit: 350
+  keywords_count: 3-10
+  reference_style: Vancouver
+  reference_limit: 60
+  figure_limit: 8
+  table_limit: 4
+  language: English
+  audience: 生信 / 临床交叉
+  story_type: data-driven
+  evidence_boundary: 候选
+
+# ========== 排版约束（约束 P3） ==========
+typesetting_constraints:
+  publisher_system: BMC
+  template: 官方模板或通用安全格式
+  line_spacing: double
+  line_numbers: required
+  figure_width_single: 85
+  figure_width_double: 170
+  figure_format: five
+
+# ========== 风险与不确定性 ==========
+risks:
+  - 创新性中等，可能影响期刊层级
+  - 缺少实验验证，可能被拒
+  - 缺少外部验证，可能被要求补充
+
+uncertainties:
+  - 用户是否有多数据集？
+  - 是否有临床数据？
+  - 是否有实验验证计划？
+
+# ========== 待定制项 ==========
+pending_items:
+  - 目标期刊
+  - 故事线偏好
+  - 证据边界
+  - 图数上限
+```
+
+### 5.3 各字段说明
+
+| 字段 | 谁用 | 用途 |
+|---|---|---|
+| `topic_judgment` | P1/P2/P4-b | 判断题材 |
+| `journal_direction` | P2/P3/P4-b | 定方向 |
+| `analysis_requirements` | P1 | 约束分析深度 |
+| `writing_constraints` | P2 | 约束写作 |
+| `typesetting_constraints` | P3 | 约束排版 |
+| `risks` | P2/P4-b | 风险提示 |
+| `uncertainties` | 用户 | 待确认 |
+| `pending_items` | 用户 | 待定制 |
+
+### 5.4 与 P1/P2/P3 的接口
+
+| 部分 | 读什么 | 用途 |
+|---|---|---|
+| P1 | `analysis_requirements` | 决定做哪些模块、做多深 |
+| P2 | `writing_constraints` | 决定结构、字数、图表、引用 |
+| P3 | `typesetting_constraints` | 决定模板、行距、图片规格 |
+| P4-b | 全部 | 作为复审基线 |
+
+### 5.5 检测
+
+| # | 判据 | 检测 | 变异用例 |
+|---|---|---|---|
+| C1 | 包字段完整 | 字段检查 | 删字段 |
+| C2 | 题材初判有依据 | 理由检查 | 留空 |
+| C3 | 期刊方向 ≥2 个 | 计数 | 改 1 个 |
+| C4 | 排除项有理由 | 理由检查 | 留空 |
+| C5 | 分析要求 ≥1 条 | 计数 | 改 0 |
+| C6 | 写作约束完整 | 字段检查 | 删字段 |
+| C7 | 排版约束完整 | 字段检查 | 删字段 |
+| C8 | 用户已确认 | 确认标记 | 未确认 |
+| C9 | 待定制项已列 | 字段检查 | 删字段 |
+
+---
+
+## 6. 评价维度
+
+### 6.1 P4-a 评价维度（预估）
+
+| 维度 | 说明 | 取值 |
+|---|---|---|
+| `novelty` | 创新性 | low / medium / high |
+| `method_rigor` | 方法严谨度 | low / medium / high |
+| `data_scale` | 数据规模 | small / medium / large |
+| `clinical_value` | 临床价值 | low / medium / high |
+| `topic_heat` | 题材热度 | cold / warm / hot |
+| `competition` | 竞争强度 | low / medium / high |
+
+### 6.2 P4-b 评价维度（实测）
+
+| 维度 | 说明 | 取值 |
+|---|---|---|
+| `narrative_completeness` | 叙事完整度 | low / medium / high |
+| `evidence_consistency` | 证据一致性 | low / medium / high |
+| `method_rigor` | 方法严谨度 | low / medium / high |
+| `statistical_validity` | 统计有效性 | low / medium / high |
+| `writing_quality` | 写作质量 | low / medium / high |
+| `figure_quality` | 图表质量 | low / medium / high |
+| `novelty` | 创新性 | low / medium / high |
+| `clinical_value` | 临床价值 | low / medium / high |
+
+### 6.3 两阶段的对应
+
+P4-a 是**预估**，P4-b 是**实测**。
+
+| 维度 | P4-a 预估 | P4-b 实测 |
+|---|---|---|
+| novelty | 预判 | 实测 |
+| method_rigor | 预判 | 实测 |
+| data_scale | 预判 | 实测 |
+| clinical_value | 预判 | 实测 |
+
+**P4-b 必须与 P4-a 对比**：
+
+- 如果 P4-b 实测 > P4-a 预估 → 提升目标期刊层级
+- 如果 P4-b 实测 < P4-a 预估 → 降低目标期刊层级，或反馈 P1/P2 补强
+
+### 6.4 检测
+
+| # | 判据 | 检测 | 变异用例 |
+|---|---|---|---|
+| E1 | 评价维度完整 | 字段检查 | 删字段 |
+| E2 | 取值合法 | 枚举检查 | 改非法值 |
+| E3 | P4-b 与 P4-a 对比 | 比对 | 跳过对比 |
+
+---
+
+## 7. 期刊数据源与防幻觉
+
+### 7.1 核心规则
+
+> 期刊数据（影响因子、分区、审稿周期、版面费、开放获取政策、伦理要求、引用风格、掠夺性筛查）**必须可验证**，不得依赖 AI 记忆。
+
+### 7.2 权威数据源
+
+| 数据 | 权威源 | 校验方式 |
+|---|---|---|
+| 影响因子 | JCR / 期刊官网 | 人工确认 + 快照 |
+| 分区 | 中科院分区表 / JCR | 人工确认 + 快照 |
+| 审稿周期 | 期刊官网 / SciRev | 区间值 + 来源 |
+| 版面费 | 期刊官网 | 人工确认 |
+| 开放获取政策 | 期刊官网 / DOAJ | 人工确认 |
+| 伦理要求 | 期刊 Guide for Authors | 人工确认 |
+| 数据共享政策 | 期刊 Guide for Authors | 人工确认 |
+| 引用风格 | 期刊 Guide for Authors | 人工确认 |
+| 掠夺性筛查 | Beall's List / DOAJ / Think.Check.Submit | 机器查询 |
+
+### 7.3 防幻觉机制
+
+| # | 机制 | 说明 |
+|---|---|---|
+| 1 | 数据必须来自权威源 | agent 不得凭记忆填 |
+| 2 | 数据必须带来源 | 每个字段附 URL 或快照 |
+| 3 | 数据必须带时间 | 快照时间戳 |
+| 4 | 数据必须可校验 | 用户可点击验证 |
+| 5 | 数据不确定时标"待确认" | 不得猜 |
+| 6 | 关键数据必须人工确认 | 影响因子、分区、版面费 |
+
+### 7.4 期刊数据文件
+
+文件：`04_journal/journal_database.yaml`
+
+```yaml
+journals:
+  - journal_id: bmc_cancer
+    name: BMC Cancer
+    publisher: BMC
+    issn: 1471-2407
+    impact_factor:
+      value: 3.4
+      year: 2024
+      source: https://jcr.clarivate.com/...
+      verified_at: 2026-09-15T10:00:00+08:00
+    partition:
+      value: Q2
+      source: 中科院分区表 2024
+      verified_at: 2026-09-15T10:00:00+08:00
+    review_cycle:
+      value: 4-8 weeks
+      source: https://...
+      verified_at: 2026-09-15T10:00:00+08:00
+    apc:
+      value: 2790 USD
+      source: https://...
+      verified_at: 2026-09-15T10:00:00+08:00
+    open_access: true
+    scope:
+      - oncology
+      - cancer_biology
+    predatory_check:
+      status: clean
+      source: DOAJ
+      verified_at: 2026-09-15T10:00:00+08:00
+```
+
+### 7.5 检测
+
+| # | 判据 | 检测 | 变异用例 |
+|---|---|---|---|
+| S1 | 每条期刊数据带来源 | 字段检查 | 删来源 |
+| S2 | 每条期刊数据带时间 | 字段检查 | 删时间 |
+| S3 | 关键数据已人工确认 | 标记检查 | 未确认 |
+| S4 | 不确定项标"待确认" | 标记检查 | 猜值 |
+| S5 | 掠夺性筛查已执行 | 标记检查 | 跳过 |
+
+---
+
+## 8. 匹配算法
+
+### 8.1 匹配维度
+
+| 维度 | 说明 | 权重 |
+|---|---|---|
+| `scope_fit` | 范围匹配 | 高 |
+| `tier_fit` | 层级匹配 | 高 |
+| `format_fit` | 格式匹配 | 中 |
+| `policy_fit` | 政策匹配 | 中 |
+| `oa_fit` | 开放获取偏好 | 低 |
+| `apc_fit` | 版面费预算 | 低 |
+
+### 8.2 匹配评分
+
+每个维度 0–10 分：
+
+| 分数 | 说明 |
+|---|---|
+| 9–10 | 完美匹配 |
+| 7–8 | 良好匹配 |
+| 5–6 | 一般匹配 |
+| 3–4 | 勉强匹配 |
+| 0–2 | 不匹配 |
+
+总分 = 加权平均。
+
+### 8.3 匹配流程
+
+```text
+读期刊方向包 / 稿件质量
+  ↓
+对候选期刊逐条评分
+  ↓
+按总分排序
+  ↓
+取 Top 3–5
+  ↓
+掠夺性筛查
+  ↓
+产出推荐期刊列表
+```
+
+### 8.4 检测
+
+| # | 判据 | 检测 | 变异用例 |
+|---|---|---|---|
+| M1 | 每个维度有评分 | 字段检查 | 删评分 |
+| M2 | 评分有依据 | 理由检查 | 留空 |
+| M3 | 总分计算正确 | 计算检查 | 改总分 |
+| M4 | Top 3–5 已排序 | 排序检查 | 未排序 |
+
+---
+
+## 9. 推荐期刊列表
+
+### 9.1 输出结构
+
+文件：`04_journal/recommended_journals.yaml`
+
+```yaml
+package_id: jdp_20260915_100000
+manuscript_version: v2
+timestamp: 2026-09-15T20:00:00+08:00
+stage: P4-b
+
+recommended:
+  - rank: 1
+    journal_id: jtm
+    name: Journal of Translational Medicine
+    publisher: BMC
+    tier: Q1
+    scope_fit: 9
+    tier_fit: 8
+    format_fit: 9
+    policy_fit: 9
+    oa_fit: 10
+    apc_fit: 7
+    total_score: 8.7
+    reason: 范围匹配、层级匹配、格式匹配
+    risks: []
+    source_verified: true
+
+  - rank: 2
+    journal_id: bmc_cancer
+    name: BMC Cancer
+    publisher: BMC
+    tier: Q2
+    scope_fit: 8
+    tier_fit: 9
+    format_fit: 9
+    policy_fit: 9
+    oa_fit: 10
+    apc_fit: 8
+    total_score: 8.5
+    reason: 层级匹配、格式匹配
+    risks:
+      - 审稿周期可能较长
+    source_verified: true
+
+  - rank: 3
+    journal_id: front_oncol
+    name: Frontiers in Oncology
+    publisher: Frontiers
+    tier: Q2
+    scope_fit: 8
+    tier_fit: 7
+    format_fit: 9
+    policy_fit: 8
+    oa_fit: 10
+    apc_fit: 6
+    total_score: 7.8
+    reason: 范围匹配、格式匹配
+    risks:
+      - 版面费较高
+    source_verified: true
+```
+
+### 9.2 输出规则
+
+| 规则 | 说明 |
+|---|---|
+| 推荐 1–3 个 | 不多于 3 |
+| 每个附评分 | 各维度 |
+| 每个附理由 | 为什么推荐 |
+| 每个附风险 | 可能的坑 |
+| 每个附来源 | 数据可验证 |
+| 用户可覆盖 | 用户决定最终 |
+
+### 9.3 检测
+
+| # | 判据 | 检测 | 变异用例 |
+|---|---|---|---|
+| J1 | 推荐期刊 1–3 个 | 计数 | 改 5 个 |
+| J2 | 每个附评分 | 字段检查 | 删评分 |
+| J3 | 每个附理由 | 字段检查 | 删理由 |
+| J4 | 每个附风险 | 字段检查 | 删风险 |
+| J5 | 每个附来源 | 字段检查 | 删来源 |
+
+---
+
+## 10. 投稿顺序
+
+### 10.1 输出结构
+
+文件：`04_journal/submission_order.yaml`
+
+```yaml
+package_id: jdp_20260915_100000
+timestamp: 2026-09-15T20:00:00+08:00
+
+order:
+  - priority: 1
+    journal_id: jtm
+    name: Journal of Translational Medicine
+    reason: 范围与层级最佳匹配
+    risks: []
+    fallback_if_rejected: bmc_cancer
+
+  - priority: 2
+    journal_id: bmc_cancer
+    name: BMC Cancer
+    reason: 层级匹配，格式一致
+    risks:
+      - 审稿周期可能较长
+    fallback_if_rejected: front_oncol
+
+  - priority: 3
+    journal_id: front_oncol
+    name: Frontiers in Oncology
+    reason: 范围匹配
+    risks:
+      - 版面费较高
+    fallback_if_rejected: null
+
+notes:
+  - 投稿顺序不是硬性要求，用户可调整
+  - 每次被拒后回到 P4-b 重新评估
+```
+
+### 10.2 排序依据
+
+| 依据 | 说明 |
+|---|---|
+| 总分 | 匹配度 |
+| 层级 | 从高到低 |
+| 风险 | 从低到高 |
+| 用户偏好 | 用户可覆盖 |
+
+### 10.3 检测
+
+| # | 判据 | 检测 | 变异用例 |
+|---|---|---|---|
+| O1 | 投稿顺序已给出 | 字段检查 | 删顺序 |
+| O2 | 每个有 fallback | 字段检查 | 删 fallback |
+| O3 | 每个有理由 | 字段检查 | 删理由 |
+| O4 | 每个有风险 | 字段检查 | 删风险 |
+
+---
+
+## 11. 掠夺性期刊筛查
+
+### 11.1 筛查数据源
+
+| 源 | 说明 |
+|---|---|
+| Beall's List | 掠夺性期刊列表 |
+| DOAJ | 开放获取期刊白名单 |
+| Think.Check.Submit | 期刊可信度指南 |
+| Scopus / Web of Science 收录 | 官方收录 |
+| 期刊官网 | 真实存在 |
+
+### 11.2 筛查规则
+
+| 规则 | 说明 |
+|---|---|
+| 不在 Beall's List | 若在，直接排除 |
+| 在 DOAJ 或 Scopus / WoS | 优先 |
+| 官网存在且信息完整 | 必要 |
+| 审稿周期合理 | 过快（<1 周）可能有问题 |
+| 版面费合理 | 与同层期刊对比 |
+| 编委可查 | 编委列表存在且真实 |
+| 联系方式可查 | 邮箱、电话、地址 |
+| 已发表文章可查 | 有真实文章 |
+| 不被预警名单收录 | 中科院预警名单 |
+
+### 11.3 筛查输出
+
+文件：`04_journal/predatory_check.yaml`
+
+```yaml
+journal_id: jtm
+name: Journal of Translational Medicine
+timestamp: 2026-09-15T20:00:00+08:00
+
+checks:
+  - name: not_in_beall_list
+    status: passed
+    source: https://beallslist.net/
+  - name: in_doaj_or_scopus
+    status: passed
+    source: https://doaj.org/
+  - name: official_website_complete
+    status: passed
+    source: https://translational-medicine.biomedcentral.com/
+  - name: review_cycle_reasonable
+    status: passed
+    value: 4-8 weeks
+  - name: apc_reasonable
+    status: passed
+    value: 2790 USD
+  - name: editorial_board_verifiable
+    status: passed
+  - name: contact_verifiable
+    status: passed
+  - name: published_articles_verifiable
+    status: passed
+  - name: not_in_warning_list
+    status: passed
+    source: 中科院预警名单 2024
+
+overall: clean
+```
+
+### 11.4 检测
+
+| # | 判据 | 检测 | 变异用例 |
+|---|---|---|---|
+| P1 | 筛查已执行 | 标记检查 | 跳过 |
+| P2 | 每项有来源 | 字段检查 | 删来源 |
+| P3 | overall 明确 | 枚举检查 | 留空 |
+| P4 | 在掠夺性列表中已排除 | 逻辑检查 | 未排除 |
+
+---
+
+## 12. 与 P1/P2/P3 的接口
+
+### 12.1 P4-a → P1
+
+| 接口 | 内容 |
+|---|---|
+| `analysis_requirements` | 决定做哪些模块、做多深 |
+| `data_requirements` | 决定数据要求 |
+| `minimum_evidence` | 决定证据最低要求 |
+
+### 12.2 P4-a → P2
+
+| 接口 | 内容 |
+|---|---|
+| `writing_constraints` | 决定结构、字数、图表、引用 |
+| `story_type` | 决定叙事风格 |
+| `evidence_boundary` | 决定主张强度 |
+
+### 12.3 P4-a → P3
+
+| 接口 | 内容 |
+|---|---|
+| `typesetting_constraints` | 决定模板、行距、图片规格 |
+
+### 12.4 P1 → P4-b
+
+| 接口 | 内容 |
+|---|---|
+| `p1_to_p4_quality.yaml` | 分析质量 |
+
+### 12.5 P2 → P4-b
+
+| 接口 | 内容 |
+|---|---|
+| `p2_to_p4b_quality.yaml` | 稿件质量 |
+
+### 12.6 P3 → P4-b
+
+| 接口 | 内容 |
+|---|---|
+| `check_report.md` | 排版质量 |
+| `submission_package.zip` | 投稿包 |
+
+### 12.7 P4-b → P1/P2/P3
+
+| 情况 | 反馈到 |
+|---|---|
+| 质量比预想低 | P1 补分析 / P2 调整叙事 |
+| 质量比预想高 | 提升目标期刊层级 |
+| 格式不匹配 | P3 换模板 |
+| 创新性不足 | P2 强化创新点 |
+| 方法严谨度不足 | P1 补方法学分析 |
+
+### 12.8 检测
+
+| # | 判据 | 检测 | 变异用例 |
+|---|---|---|---|
+| I1 | P4-a 输出被 P1 读取 | 日志检查 | 未读取 |
+| I2 | P4-a 输出被 P2 读取 | 日志检查 | 未读取 |
+| I3 | P4-a 输出被 P3 读取 | 日志检查 | 未读取 |
+| I4 | P4-b 读取 P1 产出 | 日志检查 | 未读取 |
+| I5 | P4-b 读取 P2 产出 | 日志检查 | 未读取 |
+| I6 | P4-b 读取 P3 产出 | 日志检查 | 未读取 |
+| I7 | P4-b 反馈路径已给出 | 字段检查 | 删反馈 |
+
+---
+
+## 13. 消融实验设计
+
+### 13.1 P4 消融用例
+
+| # | 判据 | 注入方式 | 期望触发 |
+|---|---|---|---|
+| A1 | 题材初判完整 | 删字段 | 完整性检查 FAIL |
+| A2 | 期刊方向 ≥2 个 | 改 1 个 | 计数检查 FAIL |
+| A3 | 排除项有理由 | 留空 | 理由检查 FAIL |
+| A7 | 用户已确认 | 未确认 | 确认检查 FAIL |
+| C1 | 包字段完整 | 删字段 | 完整性检查 FAIL |
+| C2 | 题材初判有依据 | 留空 | 理由检查 FAIL |
+| C5 | 分析要求 ≥1 条 | 改 0 | 计数检查 FAIL |
+| E3 | P4-b 与 P4-a 对比 | 跳过对比 | 对比检查 FAIL |
+| S1 | 每条期刊数据带来源 | 删来源 | 来源检查 FAIL |
+| S4 | 不确定项标"待确认" | 猜值 | 标记检查 FAIL |
+| J1 | 推荐期刊 1–3 个 | 改 5 个 | 计数检查 FAIL |
+| J4 | 每个附风险 | 删风险 | 字段检查 FAIL |
+| O1 | 投稿顺序已给出 | 删顺序 | 字段检查 FAIL |
+| P1 | 掠夺性筛查已执行 | 跳过 | 标记检查 FAIL |
+| P4 | 在掠夺性列表中已排除 | 未排除 | 逻辑检查 FAIL |
+| I1 | P4-a 输出被 P1 读取 | 未读取 | 日志检查 FAIL |
+
+### 13.2 消融记录
+
+文件：`04_journal/_runs/mutation_results.json`
+
+结构与 P1/P2/P3 一致。
+
+### 13.3 消融通过标准
+
+| 标准 | 说明 |
+|---|---|
+| 每个 A 档判据至少 1 个变异用例 | 骨架比例 100% |
+| 每个 A 档判据变异用例能抓到 | 抓不到 = 空规 |
+| 每个 A 档判据**先 FAIL 后 PASS** | 唯一有效证据 |
+| 休眠比例 ≤ 20% | 超过判"判据膨胀" |
+| GLOBAL 占比 ≤ 10% | 超过判"归因稀释" |
+
+---
+
+## 14. 休眠登记
+
+文件：`04_journal/dormant_registry.yaml`
+
+```yaml
+dormant:
+  - id: V1
+    rule: 单栏/双栏宽度
+    reason: 目标期刊未定
+    activate_when: target_journal 确定
+  - id: V2
+    rule: 摘要字数上限
+    reason: 目标期刊未定
+    activate_when: target_journal 确定
+  - id: V3
+    rule: 关键词数
+    reason: 目标期刊未定
+    activate_when: target_journal 确定
+  - id: V4
+    rule: 参考文献制式
+    reason: 目标期刊未定
+    activate_when: target_journal 确定
+  - id: V5
+    rule: 声明子标题名称
+    reason: 目标期刊未定
+    activate_when: target_journal 确定
+  - id: V6
+    rule: 分图标签大小写
+    reason: 目标期刊未定
+    activate_when: target_journal 确定
+  - id: V7
+    rule: 单位上标风格
+    reason: 目标期刊未定
+    activate_when: target_journal 确定
+  - id: W1
+    rule: 期刊数据库联网查询
+    reason: 离线模式
+    activate_when: 联网可用
+  - id: W2
+    rule: 掠夺性期刊实时查询
+    reason: 离线模式
+    activate_when: 联网可用
+```
+
+---
+
+## 15. 完整目录树
+
+```text
+04_journal/
+├── p4_config.yaml
+├── journal_direction_package.yaml
+├── journal_database.yaml
+├── recommended_journals.yaml
+├── submission_order.yaml
+├── predatory_check.yaml
+├── quality_assessment.yaml
+├── match_score.yaml
+├── dormant_registry.yaml
+├── feedback.yaml
+├── snapshots/
+│   ├── jcr_2024/
+│   ├── cas_2024/
+│   ├── doaj_2026/
+│   └── bealls_2026/
+└── _runs/
+    ├── mutation_results.json
+    └── run_{timestamp}/
+```
+
+---
+
+## 16. 配置文件总览
+
+| 文件 | 位置 | 用途 |
+|---|---|---|
+| `p4_config.yaml` | `04_journal/` | P4 主配置 |
+| `journal_direction_package.yaml` | `04_journal/` | P4-a 输出：期刊方向包 |
+| `journal_database.yaml` | `04_journal/` | 期刊数据库 |
+| `recommended_journals.yaml` | `04_journal/` | P4-b 输出：推荐期刊 |
+| `submission_order.yaml` | `04_journal/` | P4-b 输出：投稿顺序 |
+| `predatory_check.yaml` | `04_journal/` | 掠夺性筛查 |
+| `quality_assessment.yaml` | `04_journal/` | 质量评估 |
+| `match_score.yaml` | `04_journal/` | 匹配评分 |
+| `dormant_registry.yaml` | `04_journal/` | 休眠登记 |
+| `feedback.yaml` | `04_journal/` | 反馈路径 |
+| `mutation_results.json` | `04_journal/_runs/` | 变异测试结果 |
+
+---
+
+## 17. 用户干预点总览
+
+| 环节 | 触发方式 | 说明 |
+|---|---|---|
+| 研究想法 | 强制触发 | 用户提供 |
+| 数据概况 | 强制触发 | 用户提供 |
+| 初步结果 | 强制触发 | 用户提供 |
+| 题材初判 | 建议触发 | agent 判断，用户确认 |
+| 期刊方向 | 建议触发 | agent 建议，用户确认 |
+| 分析要求 | 建议触发 | agent 建议，用户确认 |
+| 写作约束 | 建议触发 | agent 建议，用户确认 |
+| 排版约束 | 建议触发 | agent 建议，用户确认 |
+| 期刊方向包 | 强制触发 | 用户确认 |
+| 成稿质量评估 | 自动触发 | agent 执行 |
+| 匹配评分 | 自动触发 | agent 执行 |
+| 掠夺性筛查 | 自动触发 | agent 执行 |
+| 推荐期刊列表 | 强制触发 | 用户确认 |
+| 投稿顺序 | 强制触发 | 用户确认 |
+| 修改建议 | 建议触发 | agent 建议，用户决定 |
+| 反馈 P1/P2/P3 | 强制触发 | 用户决定 |
+| 进入投稿 | 强制触发 | 用户决定 |
+
+---
+
+## 18. Agent 权限边界总览
+
+### 能自动做的
+
+- 读用户输入。
+- 读 P1/P2/P3 产出。
+- 读期刊数据库。
+- 题材初判。
+- 期刊方向预判。
+- 匹配评分。
+- 掠夺性筛查。
+- 推荐期刊排序。
+- 生成投稿顺序。
+- 生成反馈建议。
+- 运行变异测试。
+
+### 不能自动做的
+
+- 不能擅自决定题材。
+- 不能擅自决定期刊方向。
+- 不能擅自决定投稿目标。
+- 不能凭记忆填期刊数据。
+- 不能编造影响因子。
+- 不能编造分区。
+- 不能编造审稿周期。
+- 不能编造版面费。
+- 不能编造掠夺性筛查结果。
+- 不能隐藏风险。
+- 不能跳过掠夺性筛查。
+- 不能跳过用户确认。
+
+### 需用户确认的
+
+- 研究想法。
+- 数据概况。
+- 初步结果。
+- 题材初判。
+- 期刊方向。
+- 分析要求。
+- 写作约束。
+- 排版约束。
+- 期刊方向包。
+- 推荐期刊列表。
+- 投稿顺序。
+- 修改建议。
+- 反馈 P1/P2/P3。
+- 进入投稿。
+
+---
+
+## 19. 规则总览
+
+### 19.1 总体规则
+
+1. P4 是策略层，不替代用户决策。
+2. P4-a 是猜方向，P4-b 是看实物。
+3. 期刊数据必须可验证，不得依赖 AI 记忆。
+4. 每条期刊数据带来源、带时间、可校验。
+5. 关键数据必须人工确认。
+6. 不确定时标"待确认"，不得猜。
+7. 每条规则必须能构造 FAIL 用例，否则不立。
+
+### 19.2 P4-a 规则
+
+1. 精度：粗筛，2–3 个方向。
+2. 不用精确影响因子，用区间。
+3. 不用精确审稿周期，用区间。
+4. 不做最终决定，只是方向。
+5. 用户可覆盖。
+
+### 19.3 P4-b 规则
+
+1. 精度：细选，1–3 个目标期刊。
+2. 用实测数据，不用预估。
+3. 必须与 P4-a 对比。
+4. 必须给出投稿顺序。
+5. 必须给出反馈路径。
+
+### 19.4 期刊数据规则
+
+1. 数据必须来自权威源。
+2. 数据必须带来源。
+3. 数据必须带时间。
+4. 数据必须可校验。
+5. 不确定时标"待确认"。
+6. 关键数据必须人工确认。
+7. 不得凭记忆填。
+
+### 19.5 匹配规则
+
+1. 每个维度有评分。
+2. 评分有依据。
+3. 总分计算正确。
+4. Top 3–5 已排序。
+5. 推荐 1–3 个。
+
+### 19.6 掠夺性筛查规则
+
+1. 筛查已执行。
+2. 每项有来源。
+3. overall 明确。
+4. 在掠夺性列表中已排除。
+5. 不在预警名单。
+
+### 19.7 接口规则
+
+1. P4-a 输出被 P1 读取。
+2. P4-a 输出被 P2 读取。
+3. P4-a 输出被 P3 读取。
+4. P4-b 读取 P1 产出。
+5. P4-b 读取 P2 产出。
+6. P4-b 读取 P3 产出。
+7. P4-b 反馈路径已给出。
+
+### 19.8 消融规则
+
+1. 每个 A 档判据至少 1 个变异用例。
+2. 变异用例必须能抓到。
+3. 先 FAIL 后 PASS 是唯一有效证据。
+4. 抓不到 = 空规，不得计入"通过"。
+5. 休眠比例 ≤ 20%。
+6. GLOBAL 占比 ≤ 10%。
+7. 锚点必须唯一。
+
+---
+
+> P4 规范结束。
+> 四部分（P1/P2/P3/P4）全规范完成。

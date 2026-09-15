@@ -1,0 +1,9 @@
+schema_version: "1.0"
+status: pending
+tracks:
+  review:
+    line_spacing: double
+    line_numbers: required
+  safe:
+    line_spacing: 1.5
+    line_numbers: forbidden

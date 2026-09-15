@@ -1,0 +1,39 @@
+schema_version: "1.0"
+status: active
+dormant:
+  - id: V1
+    rule: 单栏/双栏宽度
+    reason: 目标期刊尚未确定
+    activate_when: target_journal 确定
+  - id: V2
+    rule: 摘要字数上限
+    reason: 目标期刊尚未确定
+    activate_when: target_journal 确定
+  - id: V3
+    rule: 关键词数
+    reason: 目标期刊尚未确定
+    activate_when: target_journal 确定
+  - id: V4
+    rule: 参考文献制式
+    reason: 目标期刊尚未确定
+    activate_when: target_journal 确定
+  - id: V5
+    rule: 声明子标题名称
+    reason: 目标期刊尚未确定
+    activate_when: target_journal 确定
+  - id: V6
+    rule: 分图标签大小写
+    reason: 目标期刊尚未确定
+    activate_when: target_journal 确定
+  - id: V7
+    rule: 单位上标风格
+    reason: 目标期刊尚未确定
+    activate_when: target_journal 确定
+  - id: R2
+    rule: 双盲稿匿名化
+    reason: 目标期刊尚未确定
+    activate_when: target_journal 确定为双盲刊
+  - id: R3
+    rule: 行号与行距
+    reason: 目标期刊尚未确定
+    activate_when: target_journal 确定

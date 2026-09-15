@@ -1,0 +1,5 @@
+schema_version: "1.0"
+status: skeleton
+modules: []
+notes:
+  - 模块注册将在第 2 轮、用户确认数据集和分析目标后进行。

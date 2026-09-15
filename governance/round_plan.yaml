@@ -1,0 +1,42 @@
+schema_version: "1.0"
+rounds:
+  - round: 1
+    name: 立骨架
+    milestone: M1
+    status: in_progress
+    acceptance:
+      - 目录树齐全
+      - 接口文件字段完整
+      - 空规则已登记
+      - 休眠项已登记
+      - 元原则已写入
+  - round: 2
+    name: 填 P1
+    milestone: M2
+    status: pending
+    dependency: [1]
+  - round: 3
+    name: 填 P2
+    milestone: M3
+    status: pending
+    dependency: [2]
+  - round: 4
+    name: 填 P3
+    milestone: M4
+    status: pending
+    dependency: [3]
+  - round: 5
+    name: 填 P4
+    milestone: M5
+    status: pending
+    dependency: [1]
+  - round: 6
+    name: 消融
+    milestone: M6
+    status: pending
+    dependency: [2, 3, 4, 5]
+  - round: 7
+    name: 联调
+    milestone: M7
+    status: pending
+    dependency: [6]

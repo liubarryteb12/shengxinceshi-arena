@@ -1,0 +1,6 @@
+schema_version: "1.0"
+status: pending
+required_formats: [pdf, png, tiff, jpg, svg]
+files: []
+font_embedded: null
+image_compression_disabled: null

@@ -1,0 +1,15 @@
+schema_version: "1.0"
+contract_id: p1_to_p2_evidence
+project_id: shengxinceshi_arena
+status: pending
+timestamp: null
+source_run_id: null
+evidence_boundary: unassessed
+evidence: []
+methods: []
+figures: []
+tables: []
+limitations: []
+validation:
+  status: pending
+  checks: []

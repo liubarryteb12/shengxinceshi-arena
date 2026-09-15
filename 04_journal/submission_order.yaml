@@ -1,0 +1,9 @@
+schema_version: "1.0"
+contract_id: submission_order
+status: pending
+package_id: null
+timestamp: null
+order: []
+notes:
+  - 投稿顺序必须由用户确认。
+  - 每次被拒后应回到 P4-b 重新评估。

@@ -1,0 +1,1915 @@
+# P1 生信分析 Agent 工作流 工程规范
+
+> 版本：1.2
+> 定位：用户驱动 + 模块化 + agent 编排 + 缓存传递 + 多语言支持 + 可复现 + 本地为主 + 云端可选 + 可消融
+
+---
+
+## 目录
+
+1. 总览
+2. P1 第 0 步：工作空间初始化与数据迁移
+3. P1 第 1 步：模块注册与发现
+4. P1 第 2 步：用户选模块与顺序
+5. P1 第 3 步：依赖检查与顺序建议
+6. P1 第 4 步：流程草案与确认
+7. P1 第 5 步：执行引擎
+8. P1 第 6 步：记录、质控、结果结构化
+9. P1 第 7 步：P1 接口文件
+10. 执行后端抽象层
+11. 图片产出规格前置
+12. 消融实验设计
+13. 休眠登记
+14. 完整目录树
+15. 配置文件总览
+16. 用户干预点总览
+17. Agent 权限边界总览
+18. 规则总览
+
+---
+
+## 1. 总览
+
+### 1.1 P1 定位
+
+P1 是生信分析 agent 工作流。用户只描述需求，agent 负责实现、适配、注册、执行、记录、沉淀。
+
+### 1.2 运行架构
+
+> 所有代码运行在本地。  
+> 工作空间在本地。  
+> Agent 在本地。  
+> Streamlit 在本地。  
+> R / Python 环境在本地。  
+> 默认本地执行，可选 GitHub Actions 后端。
+
+```text
+用户本地
+  ├── 工作空间
+  ├── Agent
+  ├── Streamlit
+  ├── R 环境
+  ├── Python 环境
+  └── 脚本执行（默认本地）
+        ↓ 可选
+GitHub Actions（公开仓库，无时间限制）
+```
+
+### 1.3 P1 完整流程
+
+```text
+P1 第 0 步：工作空间初始化与数据迁移
+  ↓
+P1 第 1 步：模块注册与发现
+  ↓
+P1 第 2 步：用户选模块与顺序（Streamlit）
+  ↓
+P1 第 3 步：依赖检查与顺序建议（agent）
+  ↓
+P1 第 4 步：流程草案与确认（agent + Streamlit）
+  ↓
+P1 第 5 步：执行引擎（本地 / GitHub Actions）
+  ↓
+P1 第 6 步：记录、质控、结果结构化
+  ↓
+P1 第 7 步：生成 P1 接口文件
+  ↓
+P2 / P4
+```
+
+### 1.4 核心原则
+
+- 用户管方向和取舍，agent 管执行和记录。
+- 一切皆文件，一切有描述，一切可追溯，一切可复现。
+- 脚本不硬编码路径，不硬编码参数，一切从 JSON 读。
+- 模块之间只通过缓存和结果描述文件对接。
+- 单语言模块也走 steps，只是只有一个 step。
+- Web 只产出草案，agent 不依赖 Web。
+- 默认本地执行，云端是可选加速器。
+- 云端只执行，记录在本地。
+- **每条规则必须能构造 FAIL 用例，否则不立。**
+
+### 1.5 Streamlit 的定位
+
+Streamlit 只做两件事：
+
+1. 第 2 步：让用户选模块、排初步顺序，产出 `user_draft.yaml`。
+2. 第 4 步的确认界面：展示 agent 生成的正式草案，让用户确认。
+
+第 3、4 步的逻辑归 agent，不在 Streamlit。
+
+---
+
+## 2. P1 第 0 步：工作空间初始化与数据迁移
+
+### 2.1 核心规则
+
+> 用户告诉 agent 原始数据地址后，agent 不直接分析。先问用户工作空间建在哪里，确认后展开工作空间，再把原始数据迁移到工作空间对应目录，校验通过后才开始分析。
+
+### 2.2 流程
+
+```text
+用户启动 P1
+  ↓
+Agent 询问：工作空间建在哪里？
+  ↓
+用户指定本地路径
+  ↓
+Agent 检查路径是否可用
+  ↓
+Agent 展开工作空间目录结构
+  ↓
+Agent 询问：原始数据在哪里？
+  ↓
+用户提供原始数据地址、类型、补充信息
+  ↓
+Agent 检查原始数据是否可访问
+  ↓
+Agent 迁移原始数据到工作空间 inputs/
+  ↓
+Agent 校验迁移完整性
+  ↓
+Agent 写入迁移记录
+  ↓
+Agent 执行数据可用性分析
+  ↓
+进入 P1 正式分析流程
+```
+
+### 2.3 路径检查项
+
+| 检查项 | 说明 | 失败动作 |
+|---|---|---|
+| 路径是否存在 | 父目录是否存在 | 询问是否创建 |
+| 是否可写 | 当前用户是否有写权限 | 报错，要求换路径 |
+| 空间是否足够 | 剩余空间是否满足预估 | 警告 |
+| 是否为空 | 目录是否已有内容 | 询问是否覆盖/新建子目录 |
+| 是否合法 | 路径是否含非法字符 | 报错 |
+
+### 2.4 迁移方式
+
+默认**复制**，原始数据保持只读。
+
+| 方式 | 优点 | 缺点 | 建议 |
+|---|---|---|---|
+| 复制 | 原始数据不动，安全 | 占双倍空间 | 默认 |
+| 移动 | 省空间 | 原始位置丢失，风险高 | 用户明确要求时 |
+
+### 2.5 迁移目标目录
+
+| 数据类型 | 目标目录 |
+|---|---|
+| 原始测序数据 | `inputs/raw/` |
+| 样本表、分组表 | `inputs/metadata/` |
+| 外部参考数据 | `inputs/external/` |
+| 其他补充 | `inputs/metadata/` |
+
+### 2.6 迁移校验
+
+| 校验项 | 说明 | 失败动作 |
+|---|---|---|
+| 文件存在 | 源文件是否存在 | stop |
+| 可读性 | 源文件是否可读 | stop |
+| 空间足够 | 目标空间是否足够 | stop |
+| checksum 一致 | 迁移前后是否一致 | stop |
+| 文件数量一致 | 迁移前后数量是否一致 | stop |
+| 文件大小一致 | 迁移前后大小是否一致 | warn |
+
+### 2.7 工作空间元信息
+
+文件：`workspace.yaml`
+
+```yaml
+workspace_id: ws_20260915_130000
+project_id: project_001
+created_at: 2026-09-15T13:00:00+08:00
+created_by: agent
+user: 用户
+path: /home/user/projects/project_001
+status: initialized
+
+directories:
+  inputs: inputs/
+  analysis: analysis/
+  handoff: handoff/
+  checkpoints: checkpoints/
+  next_tasklist: next_tasklist/
+  logs: logs/
+
+rules:
+  inputs_readonly: true
+  cache_rebuildable: true
+  results_preserved: true
+
+execution:
+  backend: local
+  github_actions:
+    repo: null
+    branch: main
+    workflow: analysis.yml
+    enabled: false
+```
+
+### 2.8 迁移记录
+
+文件：`inputs/migration_log.yaml`
+
+```yaml
+migration_id: mig_20260915_131000
+timestamp: 2026-09-15T13:10:00+08:00
+method: copy
+
+sources:
+  - source_path: /data/original/count_matrix.csv
+    target_path: inputs/raw/count_matrix.csv
+    size_bytes: 204800
+    checksum_before: sha256:abc123...
+    checksum_after: sha256:abc123...
+    status: success
+
+summary:
+  total_files: 2
+  success: 2
+  failed: 0
+  warnings: []
+
+notes:
+  - 原始数据保持只读，未修改
+  - 所有分析只读 inputs/ 目录
+```
+
+### 2.9 数据可用性分析
+
+文件：`analysis/_index/data_availability.yaml`
+
+```yaml
+project_id: project_001
+timestamp: 2026-09-15T13:00:00+08:00
+
+inputs:
+  - name: count_matrix
+    path: inputs/raw/count_matrix.csv
+    type: csv
+    size_bytes: 204800
+    rows: 20000
+    columns: 24
+    samples: 24
+    completeness: true
+    missing_values: 0
+    duplicates: 0
+
+available_analyses:
+  - differential_expression
+  - enrichment
+  - pca
+  - clustering
+  - heatmap
+
+unavailable_analyses:
+  - survival_analysis:
+      reason: 缺少临床随访数据
+  - batch_correction:
+      reason: 缺少批次信息
+
+recommendations:
+  - 补充临床随访数据后可做生存分析
+  - 补充批次信息后可做批次校正
+```
+
+---
+
+## 3. P1 第 1 步：模块注册与发现
+
+### 3.1 用户只描述功能，agent 全包实现与注册
+
+用户不需要：模块 ID、分类、语言、输入输出格式、参数定义、脚本路径。
+
+### 3.2 注册流程
+
+```text
+用户描述需求
+  ↓
+agent 理解需求
+  ↓
+agent 设计模块草案（module_design.yaml）
+  ↓
+用户确认设计
+  ↓
+agent 生成 module.yaml
+  ↓
+agent 生成脚本
+  ↓
+多模型复审
+  ↓
+复审通过
+  ↓
+agent 注册到 module_index.yaml
+  ↓
+agent 报告用户
+```
+
+### 3.3 设计草案
+
+文件：`analysis/modules/_drafts/{module_id}_design.yaml`
+
+```yaml
+design_id: design_20260915_160000
+user_request: 我想加一个单细胞分析功能，能对 10x 数据做聚类和 UMAP。
+timestamp: 2026-09-15T16:00:00+08:00
+
+interpretation:
+  module_id: single_cell
+  name: 单细胞分析
+  category: single_cell
+  description: 对 10x 单细胞数据做质控、聚类和 UMAP 可视化
+
+proposed:
+  language: R+Python
+  language_reason: Python 做数据处理和聚类，R 做可视化和差异分析
+
+  inputs:
+    - name: count_matrix
+      format: mtx
+      required: true
+    - name: sample_sheet
+      format: csv
+      required: false
+
+  outputs:
+    - name: clustered_data
+      format: rds
+      is_final: true
+    - name: umap_plot
+      format: pdf
+      is_final: true
+    - name: marker_genes
+      format: csv
+      is_final: true
+
+  parameters:
+    - name: resolution
+      type: float
+      default: 0.5
+    - name: n_pcs
+      type: int
+      default: 30
+
+  steps:
+    - step: 1
+      description: 数据读取与质控
+      tool: Python (scanpy)
+    - step: 2
+      description: 标准化与降维
+      tool: Python (scanpy)
+    - step: 3
+      description: 聚类
+      tool: Python (scanpy)
+    - step: 4
+      description: UMAP 可视化
+      tool: R (Seurat/ggplot2)
+    - step: 5
+      description: Marker 基因鉴定
+      tool: Python (scanpy)
+
+uncertainties:
+  - 用户是否有多样本？
+  - 是否需要批次校正？
+
+questions_for_user:
+  - 你的数据是单样本还是多样本？
+  - 是否需要做批次校正？
+  - 是否需要自动注释细胞类型？
+```
+
+### 3.4 模块索引
+
+文件：`analysis/_index/module_index.yaml`
+
+```yaml
+modules:
+  - module_id: quality_control
+    name: 数据质控
+    category: preprocessing
+    language: R
+    version: 1.0.0
+    status: available
+  - module_id: normalization
+    name: 标准化
+    category: preprocessing
+    language: R
+    version: 1.0.0
+    status: available
+  - module_id: deseq2
+    name: 差异表达分析
+    category: differential_expression
+    language: R
+    version: 1.0.0
+    status: available
+```
+
+### 3.5 模块状态
+
+| 状态 | 说明 |
+|---|---|
+| `available` | 可用 |
+| `unavailable` | 不可用，缺依赖 |
+| `deprecated` | 已弃用 |
+| `beta` | 测试中 |
+| `custom` | 用户自定义 |
+
+### 3.6 注册记录
+
+文件：`analysis/modules/{module_id}/register_log.yaml`
+
+```yaml
+module_id: single_cell
+registered_at: 2026-09-15T16:30:00+08:00
+registered_by: agent
+user_request: 我想加一个单细胞分析功能，能对 10x 数据做聚类和 UMAP。
+design_id: design_20260915_160000
+review_status: passed
+status: available
+
+steps:
+  - script: 01_qc.py
+    language: Python
+    review: passed
+  - script: 02_normalize.py
+    language: Python
+    review: passed
+  - script: 03_cluster.py
+    language: Python
+    review: passed
+  - script: 04_umap.R
+    language: R
+    review: passed
+  - script: 05_markers.py
+    language: Python
+    review: passed
+```
+
+---
+
+## 4. P1 第 2 步：用户选模块与顺序
+
+### 4.1 Streamlit 的定位
+
+Streamlit 只做界面，不执行、不检查、不改模块。
+
+### 4.2 界面示意
+
+```text
+┌────────────────────────────────┐
+│  P1 流程编排                    │
+│                                │
+│  工作空间：[选择路径 ▼]         │
+│                                │
+│  可选模块：                     │
+│  【预处理】                     │
+│   ☑ 质控                       │
+│   ☑ 标准化                     │
+│   ☐ 批次校正                   │
+│  【差异分析】                   │
+│   ☑ DESeq2                     │
+│  【富集分析】                   │
+│   ☑ GO 富集                    │
+│                                │
+│  已选顺序（可上下移动）：        │
+│   1. 质控        [↑][↓][✕]     │
+│   2. 标准化      [↑][↓][✕]     │
+│   3. DESeq2      [↑][↓][✕]     │
+│   4. GO 富集     [↑][↓][✕]     │
+│                                │
+│  执行后端：                     │
+│   ● 本地执行                    │
+│   ○ GitHub Actions              │
+│                                │
+│  [生成草案]                     │
+└────────────────────────────────┘
+```
+
+### 4.3 产出物
+
+文件：`{workspace}/analysis/_drafts/user_draft_{timestamp}.yaml`
+
+```yaml
+draft_id: user_draft_20260915_141000
+source: web
+created_at: 2026-09-15T14:10:00+08:00
+status: pending_agent_review
+
+nodes:
+  - node_id: n1
+    module_id: quality_control
+    position: {x: 100, y: 100}
+  - node_id: n2
+    module_id: normalization
+    position: {x: 300, y: 100}
+  - node_id: n3
+    module_id: deseq2
+    position: {x: 500, y: 100}
+  - node_id: n4
+    module_id: go_enrichment
+    position: {x: 700, y: 100}
+
+edges:
+  - from: n1
+    to: n2
+  - from: n2
+    to: n3
+  - from: n3
+    to: n4
+```
+
+`position` 纯给前端用，agent 执行时忽略。
+
+### 4.4 支持的选择方式
+
+| 方式 | 说明 |
+|---|---|
+| 编号选择 | 输入编号 |
+| 自然语言 | "我想做差异分析和富集" |
+| 组合选择 | 编号 + 自然语言补充 |
+
+自然语言由 agent 解析成模块列表，再让用户确认。
+
+---
+
+## 5. P1 第 3 步：依赖检查与顺序建议
+
+### 5.1 检查内容
+
+| 检查项 | 说明 |
+|---|---|
+| 依赖是否满足 | 上游模块是否已选 |
+| 依赖是否可用 | 上游模块是否可用 |
+| 依赖是否循环 | 是否有循环依赖 |
+| 输入是否可得 | 输入文件是否可得 |
+| 输出是否匹配 | 上游输出能否匹配下游输入 |
+| 版本是否兼容 | 模块版本是否兼容 |
+
+### 5.2 检查结果类型
+
+| 类型 | 说明 | 动作 |
+|---|---|---|
+| `pass` | 通过 | 继续 |
+| `warning` | 警告 | 提示，可继续 |
+| `error` | 错误 | 阻止，需修改 |
+| `missing` | 缺依赖 | 建议补充 |
+| `cycle` | 循环依赖 | 阻止，需修改 |
+
+### 5.3 依赖检查报告
+
+文件：`analysis/_index/dependency_check.yaml`
+
+```yaml
+check_id: dep_20260915_140000
+timestamp: 2026-09-15T14:00:00+08:00
+selected_modules:
+  - quality_control
+  - deseq2
+  - enrichment
+
+user_order:
+  - quality_control
+  - deseq2
+  - enrichment
+
+results:
+  - module_id: deseq2
+    status: pass
+    message: 依赖 normalization 已满足
+  - module_id: enrichment
+    status: pass
+    message: 依赖 deseq2 已满足
+
+issues: []
+suggestions:
+  - 建议在 deseq2 前加入 normalization
+```
+
+### 5.4 顺序建议逻辑
+
+| 依据 | 说明 |
+|---|---|
+| 依赖关系 | 上游必须先跑 |
+| 数据流向 | 从原始数据到结果 |
+| 模块特性 | 质控先于分析，分析先于可视化 |
+| 用户目标 | 用户想回答什么问题 |
+| 最佳实践 | 领域通用流程 |
+
+### 5.5 建议结果类型
+
+| 类型 | 说明 |
+|---|---|
+| `no_change` | 顺序合理，无需改 |
+| `reorder` | 建议调整顺序 |
+| `add` | 建议补充模块 |
+| `remove` | 建议移除模块 |
+| `replace` | 建议替换模块 |
+
+### 5.6 用户拒绝后的处理
+
+- 用户拒绝，agent 记录。
+- 用户坚持，agent 执行。
+- 执行报错，agent 诚实报告。
+- 报告写入 `handoff.md` 和 `diff.md`。
+
+---
+
+## 6. P1 第 4 步：流程草案与确认
+
+### 6.1 正式草案
+
+文件：`analysis/_index/flow_draft.yaml`
+
+```yaml
+draft_id: draft_20260915_141000
+timestamp: 2026-09-15T14:10:00+08:00
+project_id: project_001
+status: draft
+execution_backend: local
+
+flow:
+  - step: 1
+    module_id: quality_control
+    name: 数据质控
+    language: R
+    inputs:
+      - inputs/raw/count_matrix.csv
+    outputs:
+      - part1-01-output
+    depends_on: []
+
+  - step: 2
+    module_id: normalization
+    name: 标准化
+    language: R
+    inputs:
+      - part1-01-output
+    outputs:
+      - part1-02-output
+    depends_on:
+      - quality_control
+
+  - step: 3
+    module_id: deseq2
+    name: 差异表达分析
+    language: R
+    inputs:
+      - part1-02-output
+      - inputs/metadata/sample_sheet.csv
+    outputs:
+      - part1-03-output
+    depends_on:
+      - normalization
+
+  - step: 4
+    module_id: enrichment
+    name: 富集分析
+    language: R
+    inputs:
+      - part1-03-output
+    outputs:
+      - part1-04-output
+    depends_on:
+      - deseq2
+
+summary:
+  total_steps: 4
+  languages:
+    - R
+  estimated_runtime: 30min
+  estimated_outputs: 4
+
+warnings: []
+```
+
+### 6.2 用户确认后
+
+文件：`analysis/_index/flow_confirmed.yaml`
+
+状态从 `draft` 变为 `confirmed`。
+
+### 6.3 草案状态
+
+| 状态 | 说明 |
+|---|---|
+| `draft` | 草案 |
+| `confirmed` | 已确认 |
+| `executing` | 执行中 |
+| `completed` | 已完成 |
+| `cancelled` | 已取消 |
+
+---
+
+## 7. P1 第 5 步：执行引擎
+
+### 7.1 执行引擎总流程
+
+```text
+读 flow_confirmed.yaml
+  ↓
+读取执行后端配置
+  ↓
+校验输入是否就绪
+  ↓
+按步骤逐个执行
+  ↓
+每一步：
+  ├── 准备输入
+  ├── agent 生成脚本（draft）
+  ├── 多模型复审
+  ├── 复审通过？修改 → 再复审 → 超限报用户
+  ├── 执行脚本（本地 / GitHub Actions）
+  ├── 收集输出
+  ├── 判断是否沉淀为模板
+  ├── 写 manifest.yaml
+  ├── 质控检查
+  ├── 写 handoff / diff / checkpoint / next-tasklist
+  └── 下一个 step
+  ↓
+全部完成
+  ↓
+生成 P1 接口文件
+```
+
+核心原则：
+
+> 一次只跑一个模块，跑完写记录，再跑下一个。不并行，不跳步，不猜。
+
+### 7.2 调度
+
+调度只读 `flow_confirmed.yaml` 里的 `flow` 列表，按顺序执行。
+
+每个步骤状态：
+
+```text
+pending → running → success
+                  → failed
+                  → skipped
+                  → blocked
+```
+
+整个 run 状态：
+
+```text
+running → completed
+        → partial
+        → failed
+        → aborted
+```
+
+运行记录：`analysis/_runs/run_{timestamp}/run.yaml`
+
+```yaml
+run_id: run_20260915_143000
+status: running
+current_step: 3
+execution_backend: local
+steps:
+  - step: 1
+    module_id: quality_control
+    status: success
+  - step: 2
+    module_id: normalization
+    status: success
+  - step: 3
+    module_id: deseq2
+    status: running
+  - step: 4
+    module_id: enrichment
+    status: pending
+```
+
+### 7.3 脚本生成
+
+脚本不是"临时脚本"，而是**可生长的分析脚本**。
+
+四个阶段：
+
+```text
+生成 → 复审 → 执行 → 沉淀
+```
+
+脚本目录：
+
+```text
+analysis/modules/{module_id}/
+├── scripts/
+│   ├── r/
+│   │   ├── draft/
+│   │   ├── run/
+│   │   └── templates/
+│   ├── python/
+│   │   ├── draft/
+│   │   ├── run/
+│   │   └── templates/
+│   ├── convert/
+│   └── review/
+```
+
+生成原则：
+
+- 不硬编码路径。
+- 参数从 JSON 读。
+- 输入输出路径从 JSON 读。
+- 随机种子固定。
+- 写日志。
+- 写中间结果。
+
+### 7.4 多模型复审
+
+复审角色分工：
+
+| 角色 | 审什么 | 不审什么 |
+|---|---|---|
+| 角色 A：代码逻辑审查 | 逻辑正确性、边界、异常 | 生信方法、规范 |
+| 角色 B：生信专业审查 | 方法适用性、统计、参数 | 代码风格、规范 |
+| 角色 C：代码规范审查 | 可读性、可复现、路径 | 逻辑、生信方法 |
+| 角色 D：整体流程审查 | step 衔接、格式兼容 | 单脚本细节 |
+
+复审流程：
+
+```text
+脚本生成
+  ↓
+角色 A 审 → 角色 B 审 → 角色 C 审
+  ↓
+汇总意见
+  ↓
+agent 修改
+  ↓
+角色 D 整体审
+  ↓
+复审通过
+  ↓
+执行
+```
+
+复审记录：`scripts/review/review_summary.yaml`
+
+```yaml
+review_id: review_20260915_142000
+module_id: single_cell
+step: 1
+timestamp: 2026-09-15T14:20:00+08:00
+
+models:
+  - role: 代码逻辑审查
+    model: model_a
+    status: passed
+    major: 0
+    minor: 1
+    info: 1
+  - role: 生信专业审查
+    model: model_b
+    status: failed
+    major: 1
+    minor: 1
+    info: 0
+  - role: 代码规范审查
+    model: model_c
+    status: failed
+    major: 2
+    minor: 1
+    info: 0
+  - role: 整体流程审查
+    model: model_d
+    status: passed
+    major: 0
+    minor: 1
+    info: 1
+
+summary:
+  total_major: 3
+  total_minor: 4
+  total_info: 2
+  passed_models: 2
+  failed_models: 2
+  overall: failed
+
+action:
+  - 修复 model_b 的 major：多重检验校正
+  - 修复 model_c 的 major：硬编码路径
+  - 修复 model_c 的 major：随机种子
+
+next:
+  - 生成 v2 脚本
+  - 重新复审
+```
+
+复审通过标准：
+
+| 标准 | 说明 |
+|---|---|
+| 无 major | 所有角色都无 major |
+| 多数通过 | 至少 3/4 角色 passed |
+| minor 可接受 | 记录后执行 |
+| 用户可覆盖 | 用户可强制通过 |
+
+### 7.5 输入 JSON 格式
+
+文件：`analysis/outputs/{module_id}/run/input_{run_id}.json`
+
+```json
+{
+  "schema_version": "1.0",
+  "meta": {
+    "run_id": "run_20260915_143000",
+    "module_id": "deseq2",
+    "module_version": "1.0.0",
+    "timestamp": "2026-09-15T14:30:00+08:00",
+    "language": "R",
+    "random_seed": 42,
+    "execution_backend": "local"
+  },
+  "inputs": [
+    {
+      "name": "count_matrix",
+      "path": "analysis/outputs/quality_control/results/count_matrix.csv",
+      "format": "csv",
+      "checksum": "sha256:abc123...",
+      "required": true
+    }
+  ],
+  "outputs": [
+    {
+      "name": "deg_result",
+      "path": "analysis/outputs/deseq2/results/deg_result.csv",
+      "format": "csv",
+      "is_final": true
+    }
+  ],
+  "parameters": {
+    "padj_threshold": 0.05,
+    "log2fc_threshold": 1.0
+  },
+  "environment": {
+    "os": "Linux",
+    "r_version": "4.3.1",
+    "python_version": null,
+    "packages": ["DESeq2 1.40.0"]
+  },
+  "log": {
+    "path": "analysis/outputs/deseq2/logs/run_20260915_143000.log",
+    "level": "info"
+  },
+  "extensions": {},
+  "custom": {}
+}
+```
+
+R 脚本读取：
+
+```r
+args <- commandArgs(trailingOnly = TRUE)
+config <- jsonlite::fromJSON(args[1])
+count_matrix <- read.csv(config$inputs$path[config$inputs$name == "count_matrix"])
+set.seed(config$meta$random_seed)
+```
+
+Python 脚本读取：
+
+```python
+import json, sys
+with open(sys.argv[1]) as f:
+    config = json.load(f)
+inputs = {i['name']: i for i in config['inputs']}
+```
+
+### 7.6 扩展机制
+
+核心字段固定 + 扩展字段自由。
+
+```json
+{
+  "schema_version": "1.0",
+  "meta": {},
+  "inputs": [],
+  "outputs": [],
+  "parameters": {},
+  "environment": {},
+  "log": {},
+  "extensions": {},
+  "custom": {}
+}
+```
+
+| 字段 | 说明 |
+|---|---|
+| `schema_version` | JSON 格式版本 |
+| `extensions` | 通用扩展，agent 认识结构但不解析内容 |
+| `custom` | 模块私有扩展，agent 完全不解析 |
+
+规则：
+
+- 加扩展字段，schema_version 不变。
+- 加核心字段，升小版本。
+- 改核心字段，升大版本。
+- 新增模块不用改执行引擎。
+- 旧模块不受影响。
+
+### 7.7 R+Python 联合模块
+
+目录结构：
+
+```text
+analysis/modules/{module_id}/
+├── module.yaml
+├── scripts/
+│   ├── r/
+│   ├── python/
+│   ├── convert/
+│   └── review/
+├── run/
+│   ├── input_{run_id}_step1.json
+│   ├── input_{run_id}_step2.json
+│   └── step_config.yaml
+├── cache/
+│   └── intermediate/
+├── logs/
+└── script_history.yaml
+```
+
+跨语言通过文件交换，不互相调用。agent 负责编排和转换。
+
+跨语言格式建议：
+
+| 数据类型 | 推荐格式 |
+|---|---|
+| 表格 | CSV / Parquet |
+| 矩阵 | Parquet / H5AD |
+| 单细胞对象 | H5AD / RDS |
+| 图片 | PDF / SVG |
+| 参数 | JSON |
+
+### 7.8 缓存传递
+
+上游模块跑完写 `manifest.yaml`，下游模块读上游 manifest，从 manifest 里找输出路径。
+
+缓存过期判断：
+
+| 情况 | 动作 |
+|---|---|
+| 上游未跑 | 阻塞，先跑上游 |
+| 上游跑了，输入未变 | 直接用缓存 |
+| 上游跑了，输入变了 | 重跑上游 |
+| 上游跑了，参数变了 | 重跑上游 |
+| 上游跑了，版本变了 | 重跑上游 |
+| 上游跑了，checksum 变了 | 重跑上游 |
+
+缓存索引：`analysis/_index/cache_index.yaml`
+
+### 7.9 错误处理
+
+错误类型：
+
+| 类型 | 例子 | 处理 |
+|---|---|---|
+| 路径错误 | 文件找不到 | agent 自动修 |
+| 格式错误 | CSV 列名不对 | agent 自动修 |
+| 参数错误 | 阈值超范围 | agent 自动修或问用户 |
+| 依赖缺失 | 包没装 | agent 自动装 |
+| 版本冲突 | 包版本不兼容 | agent 调整 |
+| 语法错误 | 脚本报错 | agent 自动修 |
+| 数据问题 | 样本量不足 | 问用户 |
+| 逻辑错误 | 结果不对 | 问用户 |
+| 环境问题 | 内存不足 | 报用户 |
+
+重试上限：
+
+| 错误类型 | 最大重试 |
+|---|---|
+| 路径/格式/语法 | 3 次 |
+| 依赖/版本 | 3 次 |
+| 数据问题 | 0 次，直接问用户 |
+| 逻辑错误 | 1 次，然后问用户 |
+| 环境问题 | 0 次，直接报用户 |
+
+### 7.10 结果描述文件
+
+文件：`analysis/outputs/{module_id}/manifest.yaml`
+
+```yaml
+module_id: deseq2
+module_version: 1.0.0
+run_id: run_20260915_143000
+timestamp: 2026-09-15T14:30:00+08:00
+status: success
+execution_backend: local
+
+inputs:
+  - name: count_matrix
+    path: analysis/outputs/quality_control/results/count_matrix.csv
+    format: csv
+    checksum: sha256:abc123...
+
+outputs:
+  - name: deg_result
+    path: analysis/outputs/deseq2/results/deg_result.csv
+    format: csv
+    checksum: sha256:ghi789...
+    is_final: true
+    partn_n_output: part1-03-output
+
+parameters:
+  padj_threshold: 0.05
+  log2fc_threshold: 1.0
+
+environment:
+  os: Linux
+  r_version: 4.3.1
+  packages:
+    - DESeq2 1.40.0
+  random_seed: 42
+
+qc_result:
+  passed: true
+  checks:
+    - name: input_completeness
+      status: passed
+  warnings: []
+
+result_tags:
+  - analysis: differential_expression
+    parameters:
+      padj_threshold: 0.05
+    figures:
+      - volcano_plot
+    tables:
+      - deg_result
+    conclusions:
+      - 处理组 vs 对照组有 120 个显著差异基因
+
+records:
+  handoff: analysis/outputs/deseq2/records/handoff.md
+  diff: analysis/outputs/deseq2/records/diff.md
+  checkpoint: analysis/outputs/deseq2/records/checkpoint.yaml
+  next_tasklist: analysis/outputs/deseq2/records/next_tasklist.md
+```
+
+### 7.11 记录四件套
+
+#### handoff.md
+
+给人和 P2 看的交接单。回答 7 个问题：
+
+1. 这一步是什么
+2. 这一步做了什么
+3. 输入是什么
+4. 输出是什么
+5. 结果怎么样
+6. 能不能用
+7. 下一步建议
+
+#### diff.md
+
+和上次运行对比：参数变化、输入变化、输出变化、结论。
+
+#### checkpoint.yaml
+
+恢复锚点。每步成功后写，不可变。
+
+#### next_tasklist.md
+
+推荐下一步、可选下一步、阻塞项、优先级。
+
+### 7.12 质量控制
+
+通用检查项：
+
+| 检查项 | 说明 | 失败动作 |
+|---|---|---|
+| `input_completeness` | 输入文件是否齐全 | stop |
+| `input_format` | 输入格式是否正确 | stop |
+| `input_checksum` | 输入 checksum 是否匹配 | warn |
+| `sample_size` | 样本量是否满足最小要求 | stop |
+| `missing_value` | 缺失值比例是否超标 | warn |
+| `outlier_detection` | 是否有异常样本 | warn |
+| `batch_effect` | 是否有批次效应 | warn |
+| `normalization` | 是否已标准化 | stop |
+| `parameter_validity` | 参数是否合法 | stop |
+| `output_completeness` | 输出是否齐全 | stop |
+| `output_format` | 输出格式是否正确 | stop |
+| `reproducibility` | 随机种子是否固定 | warn |
+
+### 7.13 脚本沉淀
+
+四个条件：跑通、审过、效果好、通用性强。
+
+三个级别：参考、模板、标准模块。
+
+模板复用也要复审。模板定期体检，写入 `template_health.yaml`。
+
+### 7.14 中断和恢复
+
+中断类型：
+
+| 类型 | 说明 |
+|---|---|
+| 用户中断 | 用户主动点停止 |
+| 系统中断 | 断电、重启、进程被杀 |
+| 超时中断 | 单步超时、总超时 |
+| 错误中断 | 模块失败且无法自动修 |
+| 资源中断 | 内存不足、磁盘满 |
+| 依赖中断 | 上游失败，下游阻塞 |
+
+恢复方式：
+
+| 方式 | 说明 |
+|---|---|
+| 继续 | 从断点继续 |
+| 重跑当前 | 重跑当前 step |
+| 回退一步 | 从上一步重跑 |
+| 从头重跑 | 全部重跑 |
+
+### 7.15 编号规则 partn-n-output
+
+格式：`part{P}-{M}-output`
+
+示例：
+
+```text
+part1-01-output
+part1-02-output
+part1-03-output
+```
+
+规则：
+
+- 编号按流程执行顺序分配。
+- 一个功能单元一个编号。
+- 编号一旦分配，不回收、不复用。
+- 最终结果带标签，中间量不带标签。
+
+---
+
+## 8. P1 第 6 步：记录、质控、结果结构化
+
+模块成功后按顺序写：
+
+```text
+模块跑完
+  ↓
+收集输出
+  ↓
+写 manifest.yaml
+  ↓
+质控检查
+  ↓
+写 qc_report.yaml
+  ↓
+写 handoff.md
+  ↓
+写 diff.md
+  ↓
+写 checkpoint.yaml
+  ↓
+写 next_tasklist.md
+  ↓
+更新 run.yaml
+  ↓
+下一个模块
+```
+
+结果结构化三件事：
+
+1. 不只是缓存文件，还要有结果清单。
+2. 结果要能标记：对应哪个分析、哪个参数、哪张图、哪个结论。
+3. 输出文件分门别类存储，构建文件夹目录索引。
+
+---
+
+## 9. P1 第 7 步：P1 接口文件
+
+### 9.1 接口文件总览
+
+| 文件 | 给谁 | 用途 |
+|---|---|---|
+| `p1_to_p2_evidence.yaml` | P2 | 写 Methods/Results |
+| `p1_to_p4_quality.yaml` | P4 | 判断文章题材和质量 |
+| `result_index.yaml` | P2/P4 | 结果总索引 |
+| `figure_index.yaml` | P2/P4 | 图表总索引 |
+
+### 9.2 p1_to_p2_evidence.yaml
+
+```yaml
+project_id: project_001
+timestamp: 2026-09-15T15:00:00+08:00
+
+evidence:
+  - evidence_id: E001
+    partn_n_output: part1-03-output
+    module_id: deseq2
+    claim: 处理组 vs 对照组有 120 个显著差异基因
+    result_file: analysis/outputs/deseq2/results/deg_result.csv
+    figure: analysis/outputs/deseq2/figures/volcano.pdf
+    table: analysis/outputs/deseq2/tables/deg_table.csv
+    parameters:
+      padj_threshold: 0.05
+      log2fc_threshold: 1.0
+    method: DESeq2
+    method_description: 使用 DESeq2 进行差异表达分析
+    suitable_for:
+      - Methods
+      - Results
+    limitations: 无
+
+methods:
+  - method_id: M001
+    module_id: quality_control
+    description: 数据质控
+    software: FastQC
+    version: 0.11.9
+
+figures:
+  - figure_id: fig_volcano
+    path: analysis/outputs/deseq2/figures/volcano.pdf
+    description: 火山图
+    suitable_for: main_figure
+
+tables:
+  - table_id: table_deg
+    path: analysis/outputs/deseq2/tables/deg_table.csv
+    description: 差异基因表
+    suitable_for: supplementary
+```
+
+### 9.3 p1_to_p4_quality.yaml
+
+```yaml
+project_id: project_001
+timestamp: 2026-09-15T15:00:00+08:00
+
+analysis_summary:
+  data_type: transcriptomics
+  sample_size: 24
+  analysis_modules:
+    - quality_control
+    - deseq2
+    - enrichment
+  total_evidence: 2
+  total_figures: 2
+  total_tables: 2
+
+quality_assessment:
+  data_quality: high
+  method_rigor: high
+  statistical_validity: high
+  reproducibility: high
+  novelty: medium
+  clinical_value: medium
+
+topic_assessment:
+  primary_topic: 转录组差异表达与富集分析
+  secondary_topic: 细胞周期通路
+  potential_journals:
+    - 方向: 生信方法学
+    - 方向: 分子生物学
+    - 方向: 肿瘤生物学
+
+strengths:
+  - 样本量充足
+  - 分析方法规范
+  - 结果可复现
+
+weaknesses:
+  - 缺少外部验证
+  - 缺少实验验证
+  - 创新性中等
+
+recommendations:
+  - 补充外部数据集验证
+  - 补充实验验证
+  - 强化创新点
+```
+
+### 9.4 result_index.yaml / figure_index.yaml
+
+结果与图表总索引。由 agent 自动维护。
+
+---
+
+## 10. 执行后端抽象层
+
+### 10.1 两种后端
+
+```text
+执行后端（Execution Backend）
+  ├── local                # 默认，本地跑
+  └── github_actions       # 可选，上传到 GitHub Actions 跑
+```
+
+### 10.2 对比
+
+| 项 | local | github_actions |
+|---|---|---|
+| 默认 | 是 | 否 |
+| 运行位置 | 本地 | GitHub Actions |
+| 数据 | 本地 | 需上传 |
+| 环境 | 本地固定 | 每次重建 |
+| 中断 | 实时 | 只能取消 workflow |
+| 交互 | 实时 | 不能实时 |
+| 时间限制 | 无 | 单 job 6 小时 |
+| 分钟数 | 不涉及 | 公开仓库无限制 |
+| 结果 | 本地直接写 | 需回传 |
+| 适合 | 调试、短任务 | 长任务、批量 |
+
+### 10.3 规则
+
+1. 默认本地执行。
+2. GitHub Actions 是可选后端。
+3. 通过 `workspace.yaml` 切换。
+4. 先本地调试，跑通再上传。
+5. 云端只执行，记录在本地。
+6. 数据上传视大小选方案。
+7. 结果回传视大小选方案。
+8. 环境用 requirements / renv / Docker。
+9. 中断靠取消 workflow。
+10. 口子留在配置、Streamlit、执行引擎、目录结构。
+
+---
+
+## 11. 图片产出规格前置
+
+### 11.1 核心规则
+
+> P1 的图表模块在生成图片时，就按 P3 的出图安全规格产出，不等 P3 再转。
+
+### 11.2 产出规格
+
+| P1 图表类型 | 产出规格 |
+|---|---|
+| 分析图（火山图、热图、PCA、生存曲线等） | 矢量 PDF + SVG + PNG + TIFF + JPG 五格式；宽度按 85/180 mm |
+| 显微图 / 电镜图 | TIFF（LZW）600 dpi，RGB |
+| WB / 凝胶 | TIFF（LZW）灰度 600 dpi |
+| 组合图 | TIFF（LZW）500–600 dpi |
+
+### 11.3 出图时遵守
+
+- 字体 Arial / Helvetica，7–8 pt。
+- 线宽 0.25–1 pt。
+- 颜色色盲友好，避免红绿对比。
+- 图内无图题、无图注、无网格。
+- 单文件 ≤10 MB。
+- 命名 `Figure_N` 或 `{NN}_{step}_{desc}`，全链路统一。
+
+### 11.4 图表编号与引用一致
+
+P1 输出的图表编号必须与 P2/P3 的正文引用一致，命名格式在 P1 就定死，P2/P3 不改。
+
+---
+
+## 12. 消融实验设计
+
+### 12.1 核心规则
+
+> 每个守卫（质检规则、一致性检查、复审规则）必须能通过变异测试：现场注入违规，当场验证能抓到。**抓不到 = 空规，不得计入"通过"。**
+
+### 12.2 P1 消融用例
+
+| # | 判据 | 注入方式 | 期望触发 |
+|---|---|---|---|
+| Q1 | 图表五格式齐全 | 删 svg | 格式检查 FAIL |
+| Q2 | 命名与 P2 一致 | 改命名 | 命名检查 FAIL |
+| Q3 | 显微图 TIFF 600dpi | 降 300 | dpi 检查 FAIL |
+| Q4 | 凝胶/印迹 TIFF 灰度 600dpi | 改 RGB | 格式检查 FAIL |
+| Q5 | 分析图矢量优先 | 改位图 | 类型检查 FAIL |
+| Q6 | 图表编号与 P1 接口一致 | 改编号 | 一致性检查 FAIL |
+
+### 12.3 消融记录
+
+文件：`analysis/_runs/mutation_results.json`
+
+```json
+{
+  "n_pass": 0,
+  "total": 0,
+  "coverage": "0%",
+  "cases": [
+    {
+      "case_id": "P1-Q1",
+      "check_id": "P1.Q1.format",
+      "anchor": "figure.svg",
+      "injected": "removed",
+      "expect_fail": true,
+      "caught": false,
+      "verdict": "空规"
+    }
+  ]
+}
+```
+
+### 12.4 消融通过标准
+
+| 标准 | 说明 |
+|---|---|
+| 每个 A 档判据至少 1 个变异用例 | 骨架比例 100% |
+| 每个 A 档判据变异用例能抓到 | 抓不到 = 空规 |
+| 每个 A 档判据**先 FAIL 后 PASS** | 唯一有效证据 |
+| 休眠比例 ≤ 20% | 超过判"判据膨胀" |
+| GLOBAL 占比 ≤ 10% | 超过判"归因稀释" |
+
+---
+
+## 13. 休眠登记
+
+文件：`analysis/_index/dormant_registry.yaml`
+
+```yaml
+dormant:
+  - id: B4
+    rule: WB 全膜原图
+    reason: 未涉及 WB
+    activate_when: 分析模块含 western_blot
+  - id: B6
+    rule: Reporting Summary
+    reason: 目标刊未定
+    activate_when: target_journal ∈ Nature 系
+  - id: B9
+    rule: 数据可用性登录号
+    reason: 无组学数据
+    activate_when: 分析模块含 sequencing
+```
+
+---
+
+## 14. 完整目录树
+
+```text
+project_root/
+├── workspace.yaml
+├── inputs/
+│   ├── raw/
+│   ├── metadata/
+│   ├── external/
+│   └── migration_log.yaml
+│
+├── analysis/
+│   ├── modules/
+│   │   ├── _drafts/
+│   │   ├── quality_control/
+│   │   ├── deseq2/
+│   │   └── enrichment/
+│   │
+│   ├── outputs/
+│   │   ├── quality_control/
+│   │   │   ├── cache/
+│   │   │   ├── results/
+│   │   │   ├── figures/
+│   │   │   ├── tables/
+│   │   │   ├── records/
+│   │   │   ├── logs/
+│   │   │   └── manifest.yaml
+│   │   ├── deseq2/
+│   │   └── enrichment/
+│   │
+│   ├── _drafts/
+│   ├── _index/
+│   │   ├── module_index.yaml
+│   │   ├── dependency_check.yaml
+│   │   ├── flow_draft.yaml
+│   │   ├── flow_confirmed.yaml
+│   │   ├── partn_n_registry.yaml
+│   │   ├── cache_index.yaml
+│   │   ├── template_index.yaml
+│   │   ├── template_health.yaml
+│   │   ├── data_availability.yaml
+│   │   ├── result_index.yaml
+│   │   ├── figure_index.yaml
+│   │   ├── dormant_registry.yaml
+│   │   ├── p1_to_p2_evidence.yaml
+│   │   └── p1_to_p4_quality.yaml
+│   │
+│   ├── _runs/
+│   │   ├── run_{timestamp}/
+│   │   ├── mutation_results.json
+│   │   └── build_version.json
+│   │
+│   ├── _config/
+│   │   ├── execution.yaml
+│   │   ├── review_config.yaml
+│   │   └── github_actions/
+│   │
+│   └── _templates/
+│
+├── handoff/
+├── checkpoints/
+├── next_tasklist/
+└── logs/
+```
+
+---
+
+## 15. 配置文件总览
+
+| 文件 | 位置 | 用途 |
+|---|---|---|
+| `workspace.yaml` | 根目录 | 工作空间元信息 + 执行后端配置 |
+| `migration_log.yaml` | `inputs/` | 数据迁移记录 |
+| `module.yaml` | `analysis/modules/{module_id}/` | 模块定义 |
+| `register_log.yaml` | `analysis/modules/{module_id}/` | 模块注册记录 |
+| `module_index.yaml` | `analysis/_index/` | 模块索引 |
+| `dependency_check.yaml` | `analysis/_index/` | 依赖检查报告 |
+| `flow_draft.yaml` | `analysis/_index/` | 正式流程草案 |
+| `flow_confirmed.yaml` | `analysis/_index/` | 确认后的流程 |
+| `partn_n_registry.yaml` | `analysis/_index/` | 编号注册表 |
+| `cache_index.yaml` | `analysis/_index/` | 缓存索引 |
+| `template_index.yaml` | `analysis/_index/` | 模板索引 |
+| `template_health.yaml` | `analysis/_index/` | 模板体检 |
+| `data_availability.yaml` | `analysis/_index/` | 数据可用性分析 |
+| `result_index.yaml` | `analysis/_index/` | 结果总索引 |
+| `figure_index.yaml` | `analysis/_index/` | 图表总索引 |
+| `dormant_registry.yaml` | `analysis/_index/` | 休眠登记 |
+| `p1_to_p2_evidence.yaml` | `analysis/_index/` | P1→P2 接口 |
+| `p1_to_p4_quality.yaml` | `analysis/_index/` | P1→P4 接口 |
+| `execution.yaml` | `analysis/_config/` | 执行后端配置 |
+| `review_config.yaml` | `analysis/_config/` | 复审配置 |
+| `input_{run_id}.json` | `analysis/outputs/{module_id}/run/` | 输入 JSON |
+| `manifest.yaml` | `analysis/outputs/{module_id}/` | 结果描述文件 |
+| `qc_report.yaml` | `analysis/outputs/{module_id}/records/` | 质控报告 |
+| `error_log.yaml` | `analysis/outputs/{module_id}/records/` | 错误日志 |
+| `handoff.md` | `analysis/outputs/{module_id}/records/` | 交接单 |
+| `diff.md` | `analysis/outputs/{module_id}/records/` | 变化对比 |
+| `checkpoint.yaml` | `analysis/outputs/{module_id}/records/` | 恢复锚点 |
+| `next_tasklist.md` | `analysis/outputs/{module_id}/records/` | 下一步 |
+| `review_summary.yaml` | `analysis/modules/{module_id}/scripts/review/` | 复审汇总 |
+| `run.yaml` | `analysis/_runs/run_{timestamp}/` | 运行记录 |
+| `mutation_results.json` | `analysis/_runs/` | 变异测试结果 |
+
+---
+
+## 16. 用户干预点总览
+
+| 环节 | 触发方式 | 说明 |
+|---|---|---|
+| 工作空间路径 | 强制触发 | 用户必须指定或确认默认 |
+| 路径冲突 | 强制触发 | 用户决定覆盖/新建/取消 |
+| 原始数据地址 | 强制触发 | 用户提供 |
+| 数据类型 | 建议触发 | agent 判断，用户确认 |
+| 迁移方式 | 建议触发 | agent 建议复制，用户决定 |
+| 迁移确认 | 强制触发 | 用户确认后执行 |
+| 迁移失败 | 强制触发 | agent 报告，用户决定 |
+| 校验失败 | 强制触发 | agent 报告，用户决定 |
+| 描述需求 | 强制触发 | 用户说 |
+| 设计草案 | 强制触发 | 用户确认 |
+| 设计问题 | 建议触发 | agent 问，用户答 |
+| 模块选择 | 强制触发 | 用户决定 |
+| 初步顺序 | 强制触发 | 用户决定 |
+| 依赖检查 | 自动触发 | agent 执行 |
+| 顺序建议 | 建议触发 | agent 建议，用户确认 |
+| 用户拒绝建议 | 报告触发 | agent 记录并执行 |
+| 流程草案 | 强制触发 | 用户确认 |
+| 执行后端选择 | 强制触发 | 用户决定 |
+| 执行触发 | 强制触发 | 用户确认 |
+| 执行中出错 | 报告触发 | agent 修复后报告 |
+| 执行完成 | 报告触发 | agent 报告 |
+| 中断执行 | 强制触发 | 用户决定 |
+| 恢复方式 | 强制触发 | 用户决定 |
+| 是否沉淀 | 报告触发 | agent 报告，用户知情 |
+| 模板升级 | 建议触发 | agent 建议，用户确认 |
+| 模板废弃 | 强制触发 | 用户确认 |
+| 进入 P2 | 强制触发 | 用户决定 |
+
+---
+
+## 17. Agent 权限边界总览
+
+### 能自动做的
+
+- 检查路径可用性。
+- 展开工作空间目录。
+- 计算 checksum。
+- 执行迁移。
+- 校验迁移完整性。
+- 写迁移日志。
+- 执行数据可用性分析。
+- 扫描模块。
+- 生成模块索引。
+- 解析自然语言选模块。
+- 检查依赖。
+- 生成顺序建议。
+- 生成流程草案。
+- 分配编号。
+- 生成脚本。
+- 多模型复审。
+- 执行模块。
+- 收集输出。
+- 写记录。
+- 质控。
+- 错误重试（有限次）。
+- 缓存管理。
+- 脚本沉淀。
+- 中断检测。
+- 恢复检查。
+- 切换执行后端。
+- 生成图片（按 P3 规格）。
+- 运行变异测试。
+
+### 不能自动做的
+
+- 不能擅自决定工作空间路径。
+- 不能擅自移动原始数据。
+- 不能覆盖已有工作空间。
+- 不能跳过迁移校验。
+- 不能修改原始数据。
+- 不能替用户选模块。
+- 不能替用户定顺序。
+- 不能擅自改用户确认的顺序。
+- 不能跳过依赖检查。
+- 不能跳过用户确认直接执行。
+- 不能隐藏执行错误。
+- 不能改模块定义。
+- 不能编造结果。
+- 不能无限重试。
+- 不能跳过质控。
+- 不能改已分配的编号。
+- 不能改 run.yaml 历史。
+- 不能删除已有 checkpoint。
+- 不能擅自切换执行后端。
+
+### 需用户确认的
+
+- 工作空间路径。
+- 是否覆盖已有目录。
+- 迁移方式。
+- 原始数据地址。
+- 迁移失败后的处理。
+- 模块选择。
+- 初步顺序。
+- 是否接受顺序建议。
+- 流程草案。
+- 执行后端选择。
+- 是否执行。
+- 执行失败后的处理。
+- 中断执行。
+- 恢复方式。
+- 回退一步。
+- 从头重跑。
+- 放弃运行。
+- 删除运行记录。
+- 缓存覆盖。
+- 删除结果。
+- 模板升级。
+- 模板废弃。
+
+---
+
+## 18. 规则总览
+
+### 18.1 总体规则
+
+1. 用户管方向和取舍，agent 管执行和记录。
+2. 一切皆文件，一切有描述，一切可追溯，一切可复现。
+3. 模块描述定义"能做什么"，结果描述定义"做了什么"。
+4. 缓存目录定义"东西在哪"，编号规则定义"怎么引用"。
+5. 记录文件定义"怎么复盘"。
+6. 单语言模块也走 steps，只是只有一个 step。
+7. Web 只产出草案，agent 不依赖 Web。
+8. 用户只说功能，agent 全包实现与注册。
+9. 默认本地执行，云端是可选加速器。
+10. 云端只执行，记录在本地。
+11. **每条规则必须能构造 FAIL 用例，否则不立。**
+
+### 18.2 模块规则
+
+1. 模块 ID 唯一。
+2. 模块按 category 分组。
+3. 模块语言在 module.yaml 里声明。
+4. 模块用 steps 描述多步流程。
+5. 模块之间只通过缓存和结果描述文件对接。
+6. 脚本按语言分 `r/` 和 `python/`。
+7. 模块注册由 agent 自动完成。
+
+### 18.3 脚本规则
+
+1. 脚本不硬编码路径。
+2. 参数从 JSON 读。
+3. 输入输出路径从 JSON 读。
+4. 随机种子固定。
+5. 写日志。
+6. 写中间结果。
+7. 脚本生成后必须复审。
+8. 跑通、审过、效果好、通用性强才沉淀。
+9. 沉淀按语言分别存。
+10. 复用模板也要复审。
+
+### 18.4 复审规则
+
+1. 一个角色一个 prompt。
+2. 每个 prompt 只审自己那块。
+3. 输出格式统一为 YAML。
+4. 严重程度分 major/minor/info。
+5. 必须给行号和修改建议。
+6. 必须给 status 和 summary。
+7. 多模型交叉，减少偏差。
+8. 复审不通过走错误处理。
+9. 复审通过才沉淀。
+10. 用户可强制通过。
+
+### 18.5 执行规则
+
+1. 一次只跑一个模块。
+2. 不并行，不跳步，不猜。
+3. 上游完成才跑下游。
+4. 上游失败，下游阻塞。
+5. 模块失败有限重试。
+6. 重试超上限报用户。
+7. 模块成功后写 manifest 和四件套。
+8. 模块失败后写 error_log。
+9. 缓存不因中断删除。
+10. 恢复前必须检查。
+
+### 18.6 编号规则
+
+1. 格式：`part{P}-{M}-output`。
+2. 序号按流程执行顺序分配。
+3. 一个功能单元一个编号。
+4. 编号一旦分配，不回收、不复用。
+5. 最终结果带标签，中间量不带标签。
+6. 编号由 agent 自动分配，用户可查、可改。
+
+### 18.7 记录规则
+
+1. 每个模块成功后必写 manifest。
+2. 每个模块成功后必写 handoff。
+3. 每个模块成功后必写 diff。
+4. 每个模块成功后必写 checkpoint。
+5. 每个模块成功后必写 next_tasklist。
+6. handoff 回答 7 个问题。
+7. handoff 不写脚本细节，不写代码。
+8. handoff 必须写"能不能用"和"下一步建议"。
+9. 失败也写，写失败版。
+10. 恢复后追加，不覆盖。
+
+### 18.8 中断恢复规则
+
+1. 中断有类型。
+2. 中断等安全点。
+3. 每步成功后写 checkpoint。
+4. checkpoint 不可变。
+5. 恢复读最新 checkpoint。
+6. 恢复前必须检查。
+7. 恢复方式由用户决定。
+8. 系统中断靠 checkpoint 恢复。
+9. 缓存不因中断删除。
+10. 恢复记录写入 resume_log。
+
+### 18.9 接口规则
+
+1. P1 完成后自动生成接口文件。
+2. P2 只读接口文件，不直接读模块脚本。
+3. P4 只读接口文件，不直接读模块脚本。
+4. 接口文件由 agent 自动维护。
+5. P2 只读 handoff 和 evidence。
+6. P4 只读 p1_to_p4_quality。
+
+### 18.10 扩展规则
+
+1. 核心字段不动，扩展字段随便加。
+2. agent 不认识扩展字段，但会原样传给脚本。
+3. 加扩展字段，schema_version 不变。
+4. 加核心字段，升小版本。
+5. 改核心字段，升大版本。
+6. 新增模块不用改执行引擎。
+7. 旧模块不受影响。
+8. 扩展字段默认可选。
+
+### 18.11 执行后端规则
+
+1. 默认本地执行。
+2. GitHub Actions 是可选后端。
+3. 通过 `workspace.yaml` 切换。
+4. 先本地调试，跑通再上传。
+5. 云端只执行，记录在本地。
+6. 数据上传视大小选方案。
+7. 结果回传视大小选方案。
+8. 环境用 requirements / renv / Docker。
+9. 中断靠取消 workflow。
+10. 口子留在配置、Streamlit、执行引擎、目录结构。
+
+### 18.12 图片规则
+
+1. P1 图表按 P3 出图规格前置产出。
+2. 五格式齐全（pdf/png/tiff/jpg/svg）。
+3. 显微图 TIFF 600 dpi。
+4. 凝胶/印迹 TIFF 灰度 600 dpi。
+5. 分析图矢量优先。
+6. 命名与 P2/P3 全链路统一。
+7. 图表编号与 P1 接口一致。
+
+### 18.13 消融规则
+
+1. 每个 A 档判据至少 1 个变异用例。
+2. 变异用例必须能抓到。
+3. 先 FAIL 后 PASS 是唯一有效证据。
+4. 抓不到 = 空规，不得计入"通过"。
+5. 休眠比例 ≤ 20%。
+6. GLOBAL 占比 ≤ 10%。
+7. 锚点必须唯一。
+
+---
+
+> P1 规范结束。
+> 下一步：P2 SCI 写作 Agent 工作流 工程规范。

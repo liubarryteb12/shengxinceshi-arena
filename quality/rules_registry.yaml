@@ -1,0 +1,34 @@
+schema_version: "1.0"
+status: skeleton
+policy:
+  a_rule_requires_mutation: true
+  mutation_order: fail_then_pass
+  empty_rule_is_not_pass: true
+  global_ratio_max: 0.10
+  dormant_ratio_max: 0.20
+sections:
+  P1:
+    source: docs/source/P1纲要.txt
+    expected_rule_groups: [data_migration, module_registration, dependency_check, execution, qc, numbering, recovery, figure_output]
+    registered_count: 0
+    implemented_count: 0
+    mutation_count: 0
+  P2:
+    source: docs/source/P2纲要.txt
+    expected_rule_groups: [WP-0, WP-1, WP-2, WP-3, WP-4, WP-5, WP-6, WP-7, WP-8, WP-9, NC-1~7, declarations, evidence_boundary]
+    registered_count: 0
+    implemented_count: 0
+    mutation_count: 0
+  P3:
+    source: docs/source/P3纲要.txt
+    expected_rule_groups: [typesetting, fonts, structure, figures, export, downgrade]
+    registered_count: 0
+    implemented_count: 0
+    mutation_count: 0
+  P4:
+    source: docs/source/P4纲要.txt
+    expected_rule_groups: [P4-a, P4-b, journal_data, matching, predatory_screening, interfaces]
+    registered_count: 0
+    implemented_count: 0
+    mutation_count: 0
+rules: []
