@@ -42,6 +42,7 @@ def main() -> int:
         check("summary.groups", summary.get("groups") == {"control": 6, "case": 6}, str(summary.get("groups")))
         check("summary.rma", summary.get("rma_status") == "success_oligo_rma", str(summary.get("rma_status")))
         check("summary.limma", summary.get("limma_status") == "success", str(summary.get("limma_status")))
+        check("summary.absent_filter", str(summary.get("absent_filter_status", "")).startswith("success"), str(summary.get("absent_filter_status")))
         check("summary.pathway", summary.get("pathway_method_executed") == "limma::goana", str(summary.get("pathway_method_executed")))
         check("platform boundary", "not MAS5" in str(summary.get("absent_filter_method")), str(summary.get("absent_filter_method")))
     else:
