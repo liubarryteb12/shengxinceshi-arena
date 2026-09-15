@@ -6,7 +6,7 @@ repo_kind: local_git
 created_at: 2026-09-16
 timezone: Asia/Shanghai
 created_by: arena-agent
-status: initialized
+status: skeleton_ready
 milestone: M1
 build_round: 1
 
@@ -42,7 +42,7 @@ rounds:
   next: 2
   completed:
     - round: 1
-      status: in_progress
+      status: completed
       deliverable: skeleton_and_contracts
   pending:
     - round: 2
