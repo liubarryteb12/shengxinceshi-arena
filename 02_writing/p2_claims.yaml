@@ -1,0 +1,11 @@
+schema_version: "1.0"
+status: partial
+claims:
+  - claim_id: L-E001
+    text: GSE7451 contains 20 samples with control=10 and pSS=10.
+    evidence: analysis/_index/p1_to_p2_evidence.yaml#E001
+    strength: candidate
+  - claim_id: L-E002
+    text: The current run produced a limma/BH differential-expression table with 0 threshold-qualified rows.
+    evidence: analysis/_index/p1_to_p2_evidence.yaml#E002
+    strength: exploratory

@@ -1,8 +1,68 @@
 schema_version: "1.0"
 contract_id: recommended_journals
 stage: P4-b
-status: pending
-package_id: null
-manuscript_version: null
-timestamp: null
-recommended: []
+status: partial
+package_id: jdp_GSE7451_20260916
+manuscript_version: v1
+timestamp: 2026-09-16
+recommendation_status: provisional_scope_match_only
+recommended:
+  - rank: 1
+    journal_id: bmc_oral_health
+    name: BMC Oral Health
+    publisher: Springer Nature / BMC
+    scope_fit: 9
+    total_score: 待确认
+    reason: 主题与唾液/口腔分子研究最直接匹配；目标期刊指南、层级、版面费仍需核验。
+    risks:
+
+      - 当前 P1 仍为 partial matrix_only；需要 raw-CEL full_raw 和验证证据。
+      - 作者声明与目标栏目尚未确认。
+    source_verified: true
+    source: https://link.springer.com/journal/12903/aims-and-scope
+    verified_at: 2026-09-16
+    predatory_check: pending_manual_verification
+    field_audit:
+      scope_fit: {status: provisional_agent_assessment, source: https://link.springer.com/journal/12903/aims-and-scope, verified_at: 2026-09-16}
+      total_score: {status: 待确认, source: 04_journal/match_score.yaml, verified_at: 2026-09-16}
+      predatory_check: {status: pending_manual_verification, source: https://thinkchecksubmit.org/, verified_at: 2026-09-16}
+
+  - rank: 2
+    journal_id: bmc_rheumatology
+    name: BMC Rheumatology
+    publisher: Springer Nature / BMC
+    scope_fit: 8
+    total_score: 待确认
+    reason: 自身免疫病与 pSS 题材匹配；唾液分子数据的临床/病理生理定位需加强。
+    risks:
+
+      - 需要更清晰的风湿病学问题与独立验证。
+      - 目标期刊指南、层级、版面费仍需核验。
+    source_verified: true
+    source: https://link.springer.com/journal/41927/aims-and-scope
+    verified_at: 2026-09-16
+    predatory_check: pending_manual_verification
+    field_audit:
+      scope_fit: {status: provisional_agent_assessment, source: https://link.springer.com/journal/41927/aims-and-scope, verified_at: 2026-09-16}
+      total_score: {status: 待确认, source: 04_journal/match_score.yaml, verified_at: 2026-09-16}
+      predatory_check: {status: pending_manual_verification, source: https://thinkchecksubmit.org/, verified_at: 2026-09-16}
+
+  - rank: 3
+    journal_id: frontiers_in_immunology
+    name: Frontiers in Immunology
+    publisher: Frontiers
+    scope_fit: 8
+    total_score: 待确认
+    reason: 免疫学方向匹配，但官方范围明确强调公共数据计算研究的适当验证；当前缺少独立验证，风险较高。
+    risks:
+
+      - 公共数据计算研究的验证要求是当前主要阻塞。
+      - 目标期刊指南、层级、版面费仍需核验。
+    source_verified: true
+    source: https://www.frontiersin.org/journals/immunology/about
+    verified_at: 2026-09-16
+    predatory_check: pending_manual_verification
+    field_audit:
+      scope_fit: {status: provisional_agent_assessment, source: https://www.frontiersin.org/journals/immunology/about, verified_at: 2026-09-16}
+      total_score: {status: 待确认, source: 04_journal/match_score.yaml, verified_at: 2026-09-16}
+      predatory_check: {status: pending_manual_verification, source: https://thinkchecksubmit.org/, verified_at: 2026-09-16}

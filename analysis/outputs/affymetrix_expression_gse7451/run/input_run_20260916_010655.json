@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0",
+  "meta": {
+    "run_id": "run_20260916_010655",
+    "dataset_id": "GSE7451",
+    "module_id": "affymetrix_expression_gse7451",
+    "module_version": "0.1.0",
+    "random_seed": 42,
+    "execution_backend": "local"
+  },
+  "input_paths": {
+    "sample_sheet": "/home/user/shengxinceshi-arena/inputs/metadata/GSE7451/GSE7451_samples.csv",
+    "raw_archive": "/home/user/shengxinceshi-arena/inputs/raw/GSE7451/GSE7451_RAW.tar",
+    "series_matrix": "/home/user/shengxinceshi-arena/inputs/raw/GSE7451/metadata/GSE7451_series_matrix.txt.gz",
+    "expression_matrix": "/home/user/shengxinceshi-arena/analysis/outputs/affymetrix_expression_gse7451/run/series_matrix_expression_run_20260916_010655.csv"
+  },
+  "outputs": {
+    "output_dir": "/home/user/shengxinceshi-arena/analysis/outputs/affymetrix_expression_gse7451",
+    "summary_json": "/home/user/shengxinceshi-arena/analysis/outputs/affymetrix_expression_gse7451/run/summary.json"
+  },
+  "parameters": {
+    "random_seed": 42,
+    "absent_probe_threshold": 0.75,
+    "multiple_testing": "BH",
+    "input_mode": "matrix_only",
+    "cel_files": [],
+    "pathway_method_requested": "MAPPFinder",
+    "pathway_method_compatibility": "limma::goana"
+  }
+}

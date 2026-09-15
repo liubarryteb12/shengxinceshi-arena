@@ -1,0 +1,27 @@
+schema_version: "1.0"
+run_id: run_20260916_010655
+status: pass_with_NA
+verdict: pass_with_NA
+input_mode: matrix_only
+checks:
+  - name: input_completeness
+    verdict: pass
+  - name: sample_group_balance
+    verdict: pass
+    detail: control=10, pSS=10
+  - name: rma_normalization
+    verdict: N/A
+    detail: N/A_series_matrix_already_processed
+  - name: absent_probe_filter
+    verdict: N/A
+    detail: N/A_raw_MAS5_not_run_in_memory_safe_mode
+  - name: limma_bh_differential_expression
+    verdict: pass
+    detail: significant_gene_count=0
+  - name: pathway_enrichment_tool_transparency
+    verdict: N/A
+    detail: requested=MAPPFinder; executed=not_run
+warnings:
+  - 当前数据为单队列 10 vs 10，结果仅作探索性证据。
+  - 全部样本为女性，无法评估性别效应。
+  - matrix_only 模式不替代 raw CEL 的 RMA/MAS5 完整验证。

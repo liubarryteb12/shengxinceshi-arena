@@ -1,0 +1,28 @@
+{
+  "dataset_id": "GSE7451",
+  "module_id": "affymetrix_expression_gse7451",
+  "run_id": "run_20260916_010655",
+  "input_mode": "series_matrix",
+  "random_seed": 42,
+  "n_samples": 20,
+  "groups": {
+    "control": 10,
+    "pSS": 10
+  },
+  "normalized_probe_count": 54675,
+  "filtered_probe_count": 54675,
+  "significant_gene_count": 0,
+  "absent_probe_threshold": 0.75,
+  "multiple_testing": "BH",
+  "rma_status": "N/A_series_matrix_already_processed",
+  "absent_filter_status": "N/A_raw_MAS5_not_run_in_memory_safe_mode",
+  "annotation_status": "not_available",
+  "limma_status": "success",
+  "pathway_status": "N/A_no_annotation_in_matrix_validation_mode",
+  "pathway_method_requested": "MAPPFinder",
+  "pathway_method_executed": "not_run",
+  "pathway_reason": "Matrix-only validation intentionally stops before raw-CEL RMA/MAS5 and annotation-dependent enrichment",
+  "figure_formats": ["pdf", "svg", "png", "tiff", "jpg"],
+  "r_version": "R version 4.5.0 (2025-04-11)",
+  "status": "success"
+}

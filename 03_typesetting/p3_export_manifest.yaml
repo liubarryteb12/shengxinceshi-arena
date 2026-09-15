@@ -1,6 +1,22 @@
 schema_version: "1.0"
-status: pending
+status: partial
+timestamp: 2026-09-16
+p1_run_id: run_20260916_010655
+p2_contract: 02_writing/p2_to_p3_manuscript.yaml
 required_formats: [pdf, png, tiff, jpg, svg]
-files: []
-font_embedded: null
-image_compression_disabled: null
+files:
+  - path: 03_typesetting/output/manuscript.pdf
+    purpose: 文图合一预览
+  - path: 03_typesetting/output/manuscript_编辑版.docx
+    purpose: 编辑版
+  - path: 03_typesetting/output/manuscript_审稿版.docx
+    purpose: 双倍行距审稿版；连续行号待模板实现
+  - path: 03_typesetting/output/manuscript_安全版.docx
+    purpose: 1.5 倍行距安全版
+  - path: 03_typesetting/figures/Figure_1_QC.pdf
+  - path: 03_typesetting/figures/Figure_1_QC.svg
+  - path: 03_typesetting/figures/Figure_1_QC.png
+  - path: 03_typesetting/figures/Figure_1_QC.tiff
+  - path: 03_typesetting/figures/Figure_1_QC.jpg
+font_embedded: pending_template_export
+image_compression_disabled: pending_template_export

@@ -1,5 +1,23 @@
 schema_version: "1.0"
-status: pending
+status: partial
 stage: P4-b
-assessment: {}
-comparison_to_p4a: {}
+timestamp: 2026-09-16
+comparison_to_p4a:
+  p4a_status: confirmed
+  p4a_predicted_directions: [自身免疫病/干燥综合征, 口腔医学/唾液生物标志物, 生物信息学/转录组学]
+  p4b_observed_status: partial_p1_and_partial_p2_p3
+  verdict: provisional
+  explanation: P4-b 已读取实际接口，但 full_raw、目标期刊和独立验证尚未完成。
+assessment:
+  narrative_completeness: provisional
+  evidence_consistency: provisional
+  method_rigor: provisional
+  statistical_validity: provisional
+  writing_quality: provisional
+  figure_quality: provisional
+  novelty: not_assessed
+  clinical_value: not_assessed
+inputs:
+  p1: analysis/_index/p1_to_p4_quality.yaml
+  p2: 02_writing/p2_to_p4b_quality.yaml
+  p3: 03_typesetting/check_report.md

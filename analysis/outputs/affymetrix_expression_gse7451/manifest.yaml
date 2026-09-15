@@ -1,0 +1,42 @@
+schema_version: "1.0"
+module_id: affymetrix_expression_gse7451
+module_version: 0.1.0
+dataset_id: GSE7451
+run_id: run_20260916_010655
+timestamp: 2026-09-16
+status: partial
+execution_backend: local
+input_mode: matrix_only
+inputs:
+  - path: inputs/metadata/GSE7451/GSE7451_samples.csv
+    sha256: sha256:20ef40a7886004c622865a7ddfa46ac6112a16c53b8cda6623b83e7c7c70bd66
+  - path: inputs/raw/GSE7451/GSE7451_RAW.tar
+    sha256: sha256:ef67277d63686429d14276b8dadfd7a6e70a24172ff0ffbdbbea6cade35bfe12
+  - path: inputs/raw/GSE7451/metadata/GSE7451_series_matrix.txt.gz
+    sha256: sha256:b20ec3e3825e4eff97bffd41cd8ba18fd663ac6a180aa16d8e385ca6712b0a92
+outputs:
+    - analysis/outputs/affymetrix_expression_gse7451/results/normalized_expression_matrix.csv (sha256:66894276f7b13583a9fc1a8ef261e62f229915128c3ab8a82f4c8984f6d6ee45)
+    - analysis/outputs/affymetrix_expression_gse7451/results/filtered_expression_matrix.csv (sha256:66894276f7b13583a9fc1a8ef261e62f229915128c3ab8a82f4c8984f6d6ee45)
+    - analysis/outputs/affymetrix_expression_gse7451/tables/probe_detection_summary.csv (sha256:4a397498ecd377eca6549fb14238320223afc23f7ad488a321626d13a4a58966)
+    - analysis/outputs/affymetrix_expression_gse7451/tables/differential_expression.csv (sha256:f233d428d492d36a6bf74aee84292a66ff846bde6e819246e0bda8b327f95e43)
+    - analysis/outputs/affymetrix_expression_gse7451/tables/pathway_enrichment.csv (sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b)
+    - analysis/outputs/affymetrix_expression_gse7451/figures/Figure_1_QC.jpg (sha256:c40ba83f33296a992eb519e4a7baed9e792a552eb2461304bcfa111f840e4995)
+    - analysis/outputs/affymetrix_expression_gse7451/figures/Figure_1_QC.pdf (sha256:4e8aa6300d365f9bd8bc734b98880ab24c75e8e46ef9593f03c9f33ebd9577a2)
+    - analysis/outputs/affymetrix_expression_gse7451/figures/Figure_1_QC.png (sha256:d8380fc2400f706045f467f973b10ce4afe2aeb0af14453fd83a3d281051cf6e)
+    - analysis/outputs/affymetrix_expression_gse7451/figures/Figure_1_QC.svg (sha256:60603ad43188de592e7d10fe71431709ed63a5b8acce4df8f31e7cc9311065c0)
+    - analysis/outputs/affymetrix_expression_gse7451/figures/Figure_1_QC.tiff (sha256:cc9ec94f3152c9d2d58dfa62e4edeb0d9dd4ce93b95a5529aab70bdcfd4d659d)
+parameters:
+  absent_probe_threshold: 0.75
+  multiple_testing: BH
+  random_seed: 42
+pathway:
+  requested_tool: MAPPFinder
+  executed_tool: not_run
+  status: N/A_no_annotation_in_matrix_validation_mode
+  note: Matrix-only validation intentionally stops before raw-CEL RMA/MAS5 and annotation-dependent enrichment
+records:
+  qc_report: analysis/outputs/affymetrix_expression_gse7451/records/qc_report.yaml
+  handoff: analysis/outputs/affymetrix_expression_gse7451/records/handoff.md
+  diff: analysis/outputs/affymetrix_expression_gse7451/records/diff.md
+  checkpoint: analysis/outputs/affymetrix_expression_gse7451/records/checkpoint.yaml
+  next_tasklist: analysis/outputs/affymetrix_expression_gse7451/records/next_tasklist.md

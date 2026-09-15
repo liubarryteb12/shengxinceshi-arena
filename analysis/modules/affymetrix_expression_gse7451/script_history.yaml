@@ -1,0 +1,7 @@
+schema_version: "1.0"
+module_id: affymetrix_expression_gse7451
+versions:
+  - version: 0.1.0
+    date: 2026-09-16
+    status: draft_for_execution
+    source: agent

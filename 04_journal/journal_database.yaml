@@ -1,9 +1,87 @@
 schema_version: "1.0"
-status: empty
-last_verified_at: null
+status: partial
+last_verified_at: 2026-09-16
 policy:
   every_field_requires_source: true
   every_field_requires_timestamp: true
   uncertain_values_must_be_marked: 待确认
   human_confirmation_required_for: [impact_factor, partition, apc]
-journals: []
+journals:
+  - journal_id: bmc_oral_health
+    name: BMC Oral Health
+    publisher: Springer Nature / BMC
+    identity_source: https://link.springer.com/journal/12903/aims-and-scope
+    identity_verified_at: 2026-09-16
+    scope:
+      value: confirmed_scope_match
+      status: verified
+      source: https://link.springer.com/journal/12903/aims-and-scope
+      verified_at: 2026-09-16
+      evidence: Aims and scope covers disorders of the mouth, teeth and gums and related molecular genetics, pathophysiology and epidemiology.
+    impact_factor: 待确认
+    impact_factor_source: null
+    impact_factor_verified_at: 2026-09-16
+    partition: 待确认
+    partition_source: null
+    partition_verified_at: 2026-09-16
+    review_cycle: 待确认
+    review_cycle_source: null
+    review_cycle_verified_at: 2026-09-16
+    apc: 待确认
+    apc_source: null
+    apc_verified_at: 2026-09-16
+    predatory_check: pending_manual_verification
+    predatory_check_source: https://thinkchecksubmit.org/
+    predatory_check_verified_at: 2026-09-16
+  - journal_id: bmc_rheumatology
+    name: BMC Rheumatology
+    publisher: Springer Nature / BMC
+    identity_source: https://link.springer.com/journal/41927/aims-and-scope
+    identity_verified_at: 2026-09-16
+    scope:
+      value: confirmed_scope_match
+      status: verified
+      source: https://link.springer.com/journal/41927/aims-and-scope
+      verified_at: 2026-09-16
+      evidence: Aims and scope covers rheumatological diseases, systemic/inflammatory conditions, epidemiology, pathophysiology and genetics.
+    impact_factor: 待确认
+    impact_factor_source: null
+    impact_factor_verified_at: 2026-09-16
+    partition: 待确认
+    partition_source: null
+    partition_verified_at: 2026-09-16
+    review_cycle: 待确认
+    review_cycle_source: null
+    review_cycle_verified_at: 2026-09-16
+    apc: 待确认
+    apc_source: null
+    apc_verified_at: 2026-09-16
+    predatory_check: pending_manual_verification
+    predatory_check_source: https://thinkchecksubmit.org/
+    predatory_check_verified_at: 2026-09-16
+  - journal_id: frontiers_in_immunology
+    name: Frontiers in Immunology
+    publisher: Frontiers
+    identity_source: https://www.frontiersin.org/journals/immunology/about
+    identity_verified_at: 2026-09-16
+    scope:
+      value: confirmed_scope_match
+      status: verified
+      source: https://www.frontiersin.org/journals/immunology/about
+      verified_at: 2026-09-16
+      evidence: Mission and scope covers basic, translational and clinical immunology, autoimmune disorders and molecular bases of immune disorders; the page also states public-data computational studies require appropriate validation.
+    impact_factor: 待确认
+    impact_factor_source: null
+    impact_factor_verified_at: 2026-09-16
+    partition: 待确认
+    partition_source: null
+    partition_verified_at: 2026-09-16
+    review_cycle: 待确认
+    review_cycle_source: null
+    review_cycle_verified_at: 2026-09-16
+    apc: 待确认
+    apc_source: null
+    apc_verified_at: 2026-09-16
+    predatory_check: pending_manual_verification
+    predatory_check_source: https://thinkchecksubmit.org/
+    predatory_check_verified_at: 2026-09-16

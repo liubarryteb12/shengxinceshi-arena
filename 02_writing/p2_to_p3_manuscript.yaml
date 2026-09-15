@@ -1,31 +1,42 @@
 schema_version: "1.0"
 contract_id: p2_to_p3_manuscript
 project_id: shengxinceshi_arena
-status: pending
-timestamp: null
-manuscript_version: null
+status: partial
+timestamp: 2026-09-16
+p1_run_id: run_20260916_010655
+manuscript_version: v1
+output_level: L1
 structure:
-  order: null
-  sections: []
+  order: S1
+  sections: [title_page, abstract, keywords, introduction, materials_and_methods, results, discussion, declarations, references]
 files:
-  manuscript: null
-  refs: null
-  figures_dir: null
-  tables_dir: null
-figures: []
-tables: []
+  manuscript: 02_writing/manuscript/v1/main.docx
+  manuscript_markdown: 02_writing/manuscript/v1/main.md
+  refs: 02_writing/refs/refs.bib
+  figures_dir: 02_writing/figures/
+  tables_dir: 02_writing/tables/
+figures:
+  - figure_id: Figure_1_QC
+    file: 02_writing/figures/Figure_1_QC.png
+    caption: Figure 1. GSE7451 expression QC boxplot; exploratory only.
+    position_hint: after_results_para_1
+tables:
+  - table_id: Table_DE
+    file: analysis/outputs/affymetrix_expression_gse7451/tables/differential_expression.csv
+    caption: Differential expression results
+    position_hint: after_results_para_1
 references:
-  style: null
-  count: null
+  style: Vancouver_pending_target_journal
+  count: 2
 declarations:
-  ethics: null
-  consent: null
-  data_availability: null
-  code_availability: null
-  competing_interests: null
-  funding: null
-  authors_contributions: null
-  ai_declaration: null
+  ethics: draft
+  consent: draft
+  data_availability: GEO GSE7451
+  code_availability: draft
+  competing_interests: pending_author_input
+  funding: pending_author_input
+  authors_contributions: pending_author_input
+  ai_declaration: draft
 validation:
-  status: pending
-  checks: []
+  status: partial
+  checks: [WP-0, WP-CORE, WP-4, WP-5, WP-6, WP-7, NC-1~7]

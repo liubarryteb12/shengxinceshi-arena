@@ -1,5 +1,5 @@
 schema_version: "1.0"
-backend: local
+backend: github_actions
 random_seed: 42
 max_retries:
   path_format_syntax: 3
@@ -8,5 +8,7 @@ max_retries:
   logic_problem: 1
   environment_problem: 0
 github_actions:
-  enabled: false
+  enabled: true
   workflow: .github/workflows/end_to_end_validation.yml
+  repo: liubarryteb12/shengxinceshi-arena
+  branch: main

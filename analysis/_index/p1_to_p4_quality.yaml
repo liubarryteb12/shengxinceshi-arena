@@ -1,27 +1,38 @@
 schema_version: "1.0"
 contract_id: p1_to_p4_quality
 project_id: shengxinceshi_arena
-status: pending
-timestamp: null
-source_run_id: null
+status: partial
+timestamp: 2026-09-16
+source_run_id: run_20260916_010655
 analysis_summary:
-  data_type: null
-  sample_size: null
-  analysis_modules: []
-  total_evidence: 0
-  total_figures: 0
-  total_tables: 0
+  data_type: microarray_expression
+  sample_size: 20
+  groups: control=10, pSS=10
+  input_mode: matrix_only
+  analysis_modules: [affymetrix_rma, absent_probe_filtering, limma_differential_expression, pathway_enrichment]
+  total_evidence: 3
+  total_figures: 1
+  total_tables: 2
 quality_assessment:
-  data_quality: null
-  method_rigor: null
-  statistical_validity: null
-  reproducibility: null
-  novelty: null
-  clinical_value: null
+  data_quality: provisional
+  method_rigor: provisional
+  statistical_validity: provisional
+  reproducibility: high
+  novelty: not_assessed
+  clinical_value: not_assessed
 topic_assessment:
-  primary_topic: null
-  secondary_topic: null
-  potential_journals: []
-strengths: []
-weaknesses: []
-recommendations: []
+  primary_topic: 原发性干燥综合征与健康对照的唾液转录组表达差异
+  secondary_topic: 唾液基因表达候选生物标志物
+  potential_journals: [自身免疫病, 口腔医学, 生物信息学/转录组学]
+strengths:
+  - 输入完整且 checksum 可追溯
+  - 样本分组平衡
+  - limma 和 BH 参数已记录
+weaknesses:
+  - 单队列且全部样本为女性
+  - 缺少独立验证和实验验证
+  - 本地 matrix_only 验证未执行 raw CEL RMA/MAS5
+recommendations:
+  - 在 GitHub Actions full_raw 环境完成 raw CEL 验证
+  - 先完成 P1 变异测试和 pathway 工具复核
+  - P2 仅使用候选/探索性措辞

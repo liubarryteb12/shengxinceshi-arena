@@ -1,9 +1,26 @@
 schema_version: "1.0"
 contract_id: submission_order
-status: pending
-package_id: null
-timestamp: null
-order: []
+status: partial
+timestamp: 2026-09-16
+order:
+  - priority: 1
+    journal_id: bmc_oral_health
+    name: BMC Oral Health
+    reason: scope_fit highest for salivary/oral molecular direction
+    risks: [P1 partial, independent validation absent, target-journal parameters pending]
+    fallback_if_rejected: bmc_rheumatology
+  - priority: 2
+    journal_id: bmc_rheumatology
+    name: BMC Rheumatology
+    reason: autoimmune/rheumatology scope fit
+    risks: [clinical/rheumatology positioning and validation pending]
+    fallback_if_rejected: frontiers_in_immunology
+  - priority: 3
+    journal_id: frontiers_in_immunology
+    name: Frontiers in Immunology
+    reason: immunology scope fit
+    risks: [public-data computational validation requirement; current evidence insufficient]
+    fallback_if_rejected: null
 notes:
-  - 投稿顺序必须由用户确认。
-  - 每次被拒后应回到 P4-b 重新评估。
+  - This is a provisional order, not a final user submission decision.
+  - Re-run P4-b after full_raw P1, target-journal verification and independent validation assessment.

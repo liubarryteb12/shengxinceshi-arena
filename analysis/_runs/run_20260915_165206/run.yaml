@@ -1,0 +1,7 @@
+schema_version: "1.0"
+run_id: run_20260915_165206
+dataset_id: GSE7451
+module_id: affymetrix_expression_gse7451
+status: failed
+execution_backend: local
+error_log: analysis/outputs/affymetrix_expression_gse7451/logs/run_20260915_165206.log

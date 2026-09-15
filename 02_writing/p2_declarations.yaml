@@ -1,0 +1,11 @@
+schema_version: "1.0"
+status: partial
+items:
+  ethics: Not applicable pending target-journal confirmation
+  consent: Not applicable pending target-journal confirmation
+  data_availability: GEO GSE7451
+  code_availability: repository path recorded; remote push pending credentials
+  competing_interests: author input required
+  funding: author input required
+  authors_contributions: author input required
+  ai_declaration: draft requires target-journal wording

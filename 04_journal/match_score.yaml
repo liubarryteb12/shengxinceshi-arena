@@ -1,10 +1,64 @@
 schema_version: "1.0"
-status: pending
-scores: []
-weights:
-  scope_fit: high
-  tier_fit: high
-  format_fit: medium
-  policy_fit: medium
-  oa_fit: low
-  apc_fit: low
+status: partial
+timestamp: 2026-09-16
+score_policy: scope_fit is provisional; all non-scope fields remain 待确认
+scores:
+  - journal_id: bmc_oral_health
+    scope_fit: 9
+    tier_fit: 待确认
+    format_fit: 待确认
+    policy_fit: 7
+    oa_fit: 待确认
+    apc_fit: 待确认
+    total_score: 待确认
+    score_basis: provisional_scope_only
+    source: https://link.springer.com/journal/12903/aims-and-scope
+    verified_at: 2026-09-16
+    field_audit:
+      scope_fit: {status: provisional_agent_assessment, source: https://link.springer.com/journal/12903/aims-and-scope, verified_at: 2026-09-16}
+      tier_fit: {status: 待确认, source: null, verified_at: 2026-09-16}
+      format_fit: {status: 待确认, source: null, verified_at: 2026-09-16}
+      policy_fit: {status: provisional_agent_assessment, source: https://link.springer.com/journal/12903/aims-and-scope, verified_at: 2026-09-16}
+      oa_fit: {status: 待确认, source: null, verified_at: 2026-09-16}
+      apc_fit: {status: 待确认, source: null, verified_at: 2026-09-16}
+      total_score: {status: 待确认, source: 04_journal/match_score.yaml, verified_at: 2026-09-16}
+
+  - journal_id: bmc_rheumatology
+    scope_fit: 8
+    tier_fit: 待确认
+    format_fit: 待确认
+    policy_fit: 7
+    oa_fit: 待确认
+    apc_fit: 待确认
+    total_score: 待确认
+    score_basis: provisional_scope_only
+    source: https://link.springer.com/journal/41927/aims-and-scope
+    verified_at: 2026-09-16
+    field_audit:
+      scope_fit: {status: provisional_agent_assessment, source: https://link.springer.com/journal/41927/aims-and-scope, verified_at: 2026-09-16}
+      tier_fit: {status: 待确认, source: null, verified_at: 2026-09-16}
+      format_fit: {status: 待确认, source: null, verified_at: 2026-09-16}
+      policy_fit: {status: provisional_agent_assessment, source: https://link.springer.com/journal/41927/aims-and-scope, verified_at: 2026-09-16}
+      oa_fit: {status: 待确认, source: null, verified_at: 2026-09-16}
+      apc_fit: {status: 待确认, source: null, verified_at: 2026-09-16}
+      total_score: {status: 待确认, source: 04_journal/match_score.yaml, verified_at: 2026-09-16}
+
+  - journal_id: frontiers_in_immunology
+    scope_fit: 8
+    tier_fit: 待确认
+    format_fit: 待确认
+    policy_fit: 6
+    oa_fit: 待确认
+    apc_fit: 待确认
+    total_score: 待确认
+    score_basis: provisional_scope_only
+    source: https://www.frontiersin.org/journals/immunology/about
+    verified_at: 2026-09-16
+    field_audit:
+      scope_fit: {status: provisional_agent_assessment, source: https://www.frontiersin.org/journals/immunology/about, verified_at: 2026-09-16}
+      tier_fit: {status: 待确认, source: null, verified_at: 2026-09-16}
+      format_fit: {status: 待确认, source: null, verified_at: 2026-09-16}
+      policy_fit: {status: provisional_agent_assessment, source: https://www.frontiersin.org/journals/immunology/about, verified_at: 2026-09-16}
+      oa_fit: {status: 待确认, source: null, verified_at: 2026-09-16}
+      apc_fit: {status: 待确认, source: null, verified_at: 2026-09-16}
+      total_score: {status: 待确认, source: 04_journal/match_score.yaml, verified_at: 2026-09-16}

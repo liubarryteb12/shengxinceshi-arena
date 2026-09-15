@@ -1,0 +1,25 @@
+schema_version: "1.0"
+review_id: review_GSE7451_20260916
+module_id: affymetrix_expression_gse7451
+status: pending
+review_scope:
+  - path_parameterization
+  - reproducibility
+  - RMA_method
+  - absent_call_filter
+  - limma_statistics
+  - pathway_tool_transparency
+  - output_contract
+roles:
+  - role: code_logic
+    status: pending
+  - role: bioinformatics_method
+    status: pending
+  - role: code_reproducibility
+    status: pending
+  - role: pipeline_integration
+    status: pending
+summary:
+  total_major: null
+  total_minor: null
+  overall: pending

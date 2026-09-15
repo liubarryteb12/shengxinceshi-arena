@@ -1,0 +1,7 @@
+schema_version: "1.0"
+manuscript_id: ms_GSE7451_20260916
+revisions:
+  - version: v1
+    timestamp: 2026-09-16
+    trigger: initial_l1_draft
+    note: generated from P1 evidence interface; not final submission text

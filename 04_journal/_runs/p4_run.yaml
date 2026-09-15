@@ -1,0 +1,12 @@
+schema_version: "1.0"
+run_id: p4_20260916
+status: partial
+timestamp: 2026-09-16
+inputs:
+  - analysis/_index/p1_to_p4_quality.yaml
+  - 02_writing/p2_to_p4b_quality.yaml
+  - 03_typesetting/check_report.md
+outputs:
+  - 04_journal/recommended_journals.yaml
+  - 04_journal/submission_order.yaml
+  - 04_journal/feedback.yaml
