@@ -1,0 +1,21 @@
+sample_id,geo_accession,group,title,organism,gender,age,tissue,raw_archive,raw_cel_member,raw_chp_member
+GSM178746,GSM178746,control,whole saliva control 5,Homo sapiens,female,22,whole saliva,inputs/raw/GSE7451/GSE7451_RAW.tar,GSM178746.CEL.gz,GSM178746.CHP.gz
+GSM180372,GSM180372,control,whole saliva control 1,Homo sapiens,female,26,whole saliva,inputs/raw/GSE7451/GSE7451_RAW.tar,GSM180372.CEL.gz,GSM180372.CHP.gz
+GSM180373,GSM180373,control,whole saliva control 2,Homo sapiens,female,36,whole saliva,inputs/raw/GSE7451/GSE7451_RAW.tar,GSM180373.CEL.gz,GSM180373.CHP.gz
+GSM180374,GSM180374,control,whole saliva control 3,Homo sapiens,female,51,whole saliva,inputs/raw/GSE7451/GSE7451_RAW.tar,GSM180374.CEL.gz,GSM180374.CHP.gz
+GSM180375,GSM180375,control,whole saliva control 4,Homo sapiens,female,36,whole saliva,inputs/raw/GSE7451/GSE7451_RAW.tar,GSM180375.CEL.gz,GSM180375.CHP.gz
+GSM180376,GSM180376,control,whole saliva control 6,Homo sapiens,female,43,whole saliva,inputs/raw/GSE7451/GSE7451_RAW.tar,GSM180376.CEL.gz,GSM180376.CHP.gz
+GSM180377,GSM180377,control,whole saliva control 7,Homo sapiens,female,45,whole saliva,inputs/raw/GSE7451/GSE7451_RAW.tar,GSM180377.CEL.gz,GSM180377.CHP.gz
+GSM180378,GSM180378,control,whole saliva control 8,Homo sapiens,female,35,whole saliva,inputs/raw/GSE7451/GSE7451_RAW.tar,GSM180378.CEL.gz,GSM180378.CHP.gz
+GSM180379,GSM180379,control,whole saliva control 9,Homo sapiens,female,27,whole saliva,inputs/raw/GSE7451/GSE7451_RAW.tar,GSM180379.CEL.gz,GSM180379.CHP.gz
+GSM180380,GSM180380,control,whole saliva control 10,Homo sapiens,female,51,whole saliva,inputs/raw/GSE7451/GSE7451_RAW.tar,GSM180380.CEL.gz,GSM180380.CHP.gz
+GSM180381,GSM180381,pSS,whole saliva pSS patient 1,Homo sapiens,female,26,whole saliva,inputs/raw/GSE7451/GSE7451_RAW.tar,GSM180381.CEL.gz,GSM180381.CHP.gz
+GSM180382,GSM180382,pSS,whole saliva pSS patient 2,Homo sapiens,female,36,whole saliva,inputs/raw/GSE7451/GSE7451_RAW.tar,GSM180382.CEL.gz,GSM180382.CHP.gz
+GSM180383,GSM180383,pSS,whole saliva pSS patient 3,Homo sapiens,female,46,whole saliva,inputs/raw/GSE7451/GSE7451_RAW.tar,GSM180383.CEL.gz,GSM180383.CHP.gz
+GSM180384,GSM180384,pSS,whole saliva pSS patient 4,Homo sapiens,female,38,whole saliva,inputs/raw/GSE7451/GSE7451_RAW.tar,GSM180384.CEL.gz,GSM180384.CHP.gz
+GSM180385,GSM180385,pSS,whole saliva pSS patient 5,Homo sapiens,female,21,whole saliva,inputs/raw/GSE7451/GSE7451_RAW.tar,GSM180385.CEL.gz,GSM180385.CHP.gz
+GSM180386,GSM180386,pSS,whole saliva pSS patient 7,Homo sapiens,female,45,whole saliva,inputs/raw/GSE7451/GSE7451_RAW.tar,GSM180386.CEL.gz,GSM180386.CHP.gz
+GSM180387,GSM180387,pSS,whole saliva pSS patient 8,Homo sapiens,female,38,whole saliva,inputs/raw/GSE7451/GSE7451_RAW.tar,GSM180387.CEL.gz,GSM180387.CHP.gz
+GSM180388,GSM180388,pSS,whole saliva pSS patient 9,Homo sapiens,female,27,whole saliva,inputs/raw/GSE7451/GSE7451_RAW.tar,GSM180388.CEL.gz,GSM180388.CHP.gz
+GSM180389,GSM180389,pSS,whole saliva pSS patient 10,Homo sapiens,female,49,whole saliva,inputs/raw/GSE7451/GSE7451_RAW.tar,GSM180389.CEL.gz,GSM180389.CHP.gz
+GSM180390,GSM180390,pSS,whole saliva pSS patient 6,Homo sapiens,female,43,whole saliva,inputs/raw/GSE7451/GSE7451_RAW.tar,GSM180390.CEL.gz,GSM180390.CHP.gz

@@ -1,0 +1,22 @@
+schema_version: "1.0"
+status: success
+dataset_id: GSE7451
+source_url: https://ftp.ncbi.nlm.nih.gov/geo/series/GSE7nnn/GSE7451/
+matrix_file: inputs/raw/GSE7451/metadata/GSE7451_series_matrix.txt.gz
+raw_archive: inputs/raw/GSE7451/GSE7451_RAW.tar
+matrix_sha256: b20ec3e3825e4eff97bffd41cd8ba18fd663ac6a180aa16d8e385ca6712b0a92
+raw_archive_sha256: ef67277d63686429d14276b8dadfd7a6e70a24172ff0ffbdbbea6cade35bfe12
+sample_count: 20
+groups:
+  control: 10
+  pSS: 10
+  unresolved: 0
+balanced_groups: true
+platform: GPL570 / Affymetrix Human Genome U133 Plus 2.0
+organisms: [Homo sapiens]
+raw_archive_members: 40
+cel_members: 20
+chp_members: 20
+all_samples_have_cel: true
+all_samples_have_chp: true
+parser: scripts/prepare_geo_metadata.py
