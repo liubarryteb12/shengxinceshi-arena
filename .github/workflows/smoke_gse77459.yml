@@ -50,7 +50,7 @@ jobs:
           RSCRIPT
 
       - name: Download GSE77459 and record checksums
-        run: python scripts/download_geo.py --dataset GSE77459 --output inputs/raw
+        run: python scripts/download_geo_lightweight.py --dataset GSE77459 --output inputs/raw
 
       - name: Prepare and validate the 6-versus-6 sample sheet
         run: |
