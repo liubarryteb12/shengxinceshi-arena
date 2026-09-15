@@ -29,23 +29,58 @@ normalized_matrix <- Biobase::exprs(normalized)
 colnames(normalized_matrix) <- sample_sheet$sample_id
 write.csv(normalized_matrix, file.path(result_dir, "normalized_expression_matrix.csv"), quote = FALSE)
 
-# GPL17692 is an Affymetrix Gene ST array. MAS5 calls are not silently claimed;
-# oligo::detectionP is the explicitly labelled platform-compatible detection step.
-detection <- tryCatch(oligo::detectionP(raw), error = function(e) NULL)
-absent_filter_status <- "N/A_oligo_detectionP_unavailable"
+# GPL17692 is an Affymetrix Gene ST array. MAS5 calls are not silently claimed.
+# Gene ST arrays use oligo's DABG/PSDABG present/absent compatibility methods;
+# DABG p-values are aggregated from probes to the same core transcript clusters
+# used by RMA. The method and the non-MAS5 boundary are carried into every record.
+aggregate_dabg_to_core <- function(feature_set) {
+  pvalues <- Biobase::exprs(oligo::paCalls(feature_set, "DABG", verbose = FALSE))
+  pvalues <- as.matrix(pvalues)
+  info <- oligo::getProbeInfo(feature_set, field = c("fid", "fsetid"), target = "core")
+  fid_col <- if ("fid" %in% colnames(info)) "fid" else stop("DABG probe info has no fid column")
+  fset_col <- if ("fsetid" %in% colnames(info)) "fsetid" else if ("man_fsetid" %in% colnames(info)) "man_fsetid" else stop("DABG probe info has no fsetid column")
+  probe_ids <- as.character(rownames(pvalues))
+  fset_ids <- as.character(info[[fset_col]])[match(probe_ids, as.character(info[[fid_col]]))]
+  valid <- !is.na(fset_ids) & nzchar(fset_ids)
+  if (!any(valid)) stop("DABG probe IDs did not map to core transcript clusters")
+  pvalues <- pvalues[valid, , drop = FALSE]
+  fset_ids <- fset_ids[valid]
+  target_ids <- unique(fset_ids)
+  aggregated <- matrix(NA_real_, nrow = length(target_ids), ncol = ncol(pvalues),
+                        dimnames = list(target_ids, colnames(pvalues)))
+  for (j in seq_len(ncol(pvalues))) {
+    aggregated[, j] <- stats::tapply(pvalues[, j], fset_ids, stats::median, na.rm = TRUE)[target_ids]
+  }
+  aggregated
+}
+
+detection <- tryCatch(aggregate_dabg_to_core(raw), error = function(e) NULL)
+absent_filter_status <- "N/A_oligo_DABG_unavailable"
 absent_filter_method <- "not_run"
-if (!is.null(detection)) {
-  detection <- as.matrix(detection)
-  if (!is.null(rownames(detection)) && all(rownames(normalized_matrix) %in% rownames(detection))) {
-    detection <- detection[rownames(normalized_matrix), , drop = FALSE]
-    present_fraction <- rowMeans(detection < 0.05, na.rm = TRUE)
-    absent_fraction <- 1 - present_fraction
-    keep <- absent_fraction <= as.numeric(config$parameters$absent_probe_threshold)
-    absent_filter_status <- "success_compatibility_detectionP"
-    absent_filter_method <- "oligo::detectionP(p<0.05); not MAS5"
+if (!is.null(detection) && all(rownames(normalized_matrix) %in% rownames(detection))) {
+  detection <- detection[rownames(normalized_matrix), , drop = FALSE]
+  present_fraction <- rowMeans(detection < 0.05, na.rm = TRUE)
+  absent_fraction <- 1 - present_fraction
+  keep <- absent_fraction <= as.numeric(config$parameters$absent_probe_threshold)
+  absent_filter_status <- "success_compatibility_DABG"
+  absent_filter_method <- "oligo::paCalls(DABG) aggregated to core; p<0.05; not MAS5"
+} else {
+  # PSDABG is a documented oligo fallback at probeset level. Use it only when
+  # the platform design cannot expose a core-level DABG mapping.
+  detection_ps <- tryCatch(Biobase::exprs(oligo::paCalls(raw, "PSDABG", verbose = FALSE)), error = function(e) NULL)
+  if (!is.null(detection_ps)) {
+    detection_ps <- as.matrix(detection_ps)
+    if (!is.null(rownames(detection_ps)) && all(rownames(normalized_matrix) %in% rownames(detection_ps))) {
+      detection_ps <- detection_ps[rownames(normalized_matrix), , drop = FALSE]
+      present_fraction <- rowMeans(detection_ps < 0.05, na.rm = TRUE)
+      absent_fraction <- 1 - present_fraction
+      keep <- absent_fraction <= as.numeric(config$parameters$absent_probe_threshold)
+      absent_filter_status <- "success_compatibility_PSDABG"
+      absent_filter_method <- "oligo::paCalls(PSDABG); p<0.05; not MAS5"
+    }
   }
 }
-if (absent_filter_status != "success_compatibility_detectionP") {
+if (!grepl("^success", absent_filter_status)) {
   keep <- rep(TRUE, nrow(normalized_matrix))
   present_fraction <- rep(NA_real_, nrow(normalized_matrix))
   absent_fraction <- rep(NA_real_, nrow(normalized_matrix))
@@ -86,17 +121,26 @@ if (requireNamespace("hugene21sttranscriptcluster.db", quietly = TRUE) && requir
 write.csv(de, file.path(table_dir, "differential_expression.csv"), row.names = FALSE, quote = FALSE)
 significant <- de[!is.na(de$adj.P.Val) & de$adj.P.Val <= 0.05 & abs(de$logFC) >= 1, , drop = FALSE]
 pathway <- data.frame()
-pathway_status <- "N/A_no_compatible_annotation_or_significant_genes"
+pathway_status <- "N/A_no_compatible_annotation"
 pathway_method_executed <- "not_run"
-if (!is.null(annotation) && nrow(significant) > 0 && "ENTREZID" %in% colnames(significant) && requireNamespace("org.Hs.eg.db", quietly = TRUE)) {
-  entrez <- unique(stats::na.omit(as.character(significant$ENTREZID)))
+enrichment_input <- significant
+pathway_input_policy <- "BH<=0.05 and |logFC|>=1"
+if (nrow(enrichment_input) == 0 && nrow(de) > 0) {
+  # A small smoke dataset can have no BH-significant rows despite a valid
+  # limma fit. Still execute the enrichment implementation on the 100 most
+  # highly ranked rows, and label this technical fallback explicitly.
+  enrichment_input <- utils::head(de, 100)
+  pathway_input_policy <- "top 100 limma-ranked rows fallback; no BH-significant rows"
+}
+if (!is.null(annotation) && nrow(enrichment_input) > 0 && "ENTREZID" %in% colnames(enrichment_input) && requireNamespace("org.Hs.eg.db", quietly = TRUE)) {
+  entrez <- unique(stats::na.omit(as.character(enrichment_input$ENTREZID)))
   universe <- unique(stats::na.omit(as.character(annotation$ENTREZID)))
   if (length(entrez) > 0 && length(universe) > 0) {
     pathway <- tryCatch(limma::goana(de = entrez, universe = universe, species = "Hs"), error = function(e) NULL)
     if (!is.null(pathway)) {
       pathway$GO_ID <- rownames(pathway)
       rownames(pathway) <- NULL
-      pathway_status <- "success_compatibility"
+      pathway_status <- if (nrow(significant) > 0) "success_compatibility" else "success_compatibility_top_ranked_fallback"
       pathway_method_executed <- "limma::goana"
     }
   }
@@ -137,6 +181,7 @@ summary <- list(
   pathway_status = pathway_status,
   pathway_method_requested = "MAPPFinder",
   pathway_method_executed = pathway_method_executed,
+  pathway_input_policy = pathway_input_policy,
   pathway_reason = "GSE77459 smoke path uses explicitly labelled platform-compatible steps; it is not a GSE7451/pSS result",
   figure_formats = c("pdf", "svg", "png", "tiff", "jpg"),
   r_version = R.version.string,

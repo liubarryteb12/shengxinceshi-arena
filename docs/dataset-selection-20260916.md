@@ -15,7 +15,7 @@
 
 ## 明确边界
 
-GSE77459 是 Gene ST 平台，不能把 MAS5 present/absent calls 静默套用为原始方法。因此 smoke path 使用 `oligo::rma` 与显式标注的 `oligo::detectionP` 兼容检测；manifest、summary、handoff 都写明 `not MAS5`。这条路径用于技术可行性验证，不产生 GSE7451/pSS 科学结论，也不改变 GSE7451 的预注册 P1 定义。
+GSE77459 是 Gene ST 平台，不能把 MAS5 present/absent calls 静默套用为原始方法。因此 smoke path 使用 `oligo::rma` 与显式标注的 `oligo::paCalls(DABG)`（必要时 `PSDABG`）兼容检测；DABG p 值先聚合到 RMA core transcript cluster，manifest、summary、handoff 都写明 `not MAS5`。这条路径用于技术可行性验证，不产生 GSE7451/pSS 科学结论，也不改变 GSE7451 的预注册 P1 定义。
 
 ## 未选数据集的原因
 
