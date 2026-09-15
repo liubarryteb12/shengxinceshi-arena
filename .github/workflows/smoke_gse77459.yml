@@ -1,0 +1,79 @@
+name: Lightweight GSE77459 Raw-CEL Smoke Test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gse77459_smoke:
+    name: GSE77459 raw-CEL smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      TZ: Asia/Shanghai
+      R_LIBS_USER: ${{ github.workspace }}/.r-library
+      P1_EXECUTION_BACKEND: github_actions
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python workflow dependencies
+        run: python -m pip install --upgrade pip pyyaml
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.5.0'
+          use-public-rspm: true
+
+      - name: Install ST-array R/Bioconductor dependencies
+        shell: bash
+        run: |
+          mkdir -p "$R_LIBS_USER"
+          Rscript - <<'RSCRIPT'
+          options(repos = c(CRAN = "https://cloud.r-project.org"))
+          if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+          BiocManager::install(
+            c("jsonlite", "oligo", "limma", "Biobase", "AnnotationDbi",
+              "pd.hugene.2.1.st", "hugene21sttranscriptcluster.db", "org.Hs.eg.db"),
+            ask = FALSE,
+            update = FALSE,
+            Ncpus = 2
+          )
+          RSCRIPT
+
+      - name: Download GSE77459 and record checksums
+        run: python scripts/download_geo.py --dataset GSE77459 --output inputs/raw
+
+      - name: Prepare and validate the 6-versus-6 sample sheet
+        run: |
+          python scripts/prepare_gse77459_metadata.py \
+            --matrix inputs/raw/GSE77459/metadata/GSE77459_series_matrix.txt.gz \
+            --raw-tar inputs/raw/GSE77459/GSE77459_RAW.tar \
+            --output-dir inputs/metadata/GSE77459 \
+            --source-url https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE77459
+
+      - name: Execute GSE77459 raw-CEL smoke path
+        run: python scripts/run_smoke_p1.py --workspace .
+
+      - name: Validate smoke output and platform boundary
+        run: python scripts/validate_smoke_p1.py --workspace .
+
+      - name: Upload GSE77459 smoke artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gse77459-smoke-${{ github.run_id }}
+          retention-days: 30
+          if-no-files-found: error
+          path: |
+            analysis/_runs/smoke_*/
+            analysis/outputs/gse77459_smoke/
+            inputs/metadata/GSE77459/
+            inputs/raw/GSE77459/metadata/download_manifest.json

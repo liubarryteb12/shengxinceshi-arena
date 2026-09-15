@@ -1,7 +1,52 @@
 schema_version: "1.0"
-status: pending
-journal_id: null
-name: null
-timestamp: null
-checks: []
-overall: 待确认
+status: partial
+timestamp: 2026-09-16
+source_policy:
+  - https://thinkchecksubmit.org/
+  - https://doaj.org/
+  - official journal scope pages
+journals:
+  - journal_id: bmc_oral_health
+    name: BMC Oral Health
+    checks:
+      - name: official_website_or_scope_page
+        status: passed
+        source: https://link.springer.com/journal/12903/aims-and-scope
+        verified_at: 2026-09-16
+      - name: independent_predatory_database_check
+        status: pending_manual_verification
+        source: https://thinkchecksubmit.org/
+      - name: DOAJ_or_indexing_check
+        status: pending_manual_verification
+        source: https://doaj.org/
+    overall: pending_manual_verification
+
+  - journal_id: bmc_rheumatology
+    name: BMC Rheumatology
+    checks:
+      - name: official_website_or_scope_page
+        status: passed
+        source: https://link.springer.com/journal/41927/aims-and-scope
+        verified_at: 2026-09-16
+      - name: independent_predatory_database_check
+        status: pending_manual_verification
+        source: https://thinkchecksubmit.org/
+      - name: DOAJ_or_indexing_check
+        status: pending_manual_verification
+        source: https://doaj.org/
+    overall: pending_manual_verification
+
+  - journal_id: frontiers_in_immunology
+    name: Frontiers in Immunology
+    checks:
+      - name: official_website_or_scope_page
+        status: passed
+        source: https://www.frontiersin.org/journals/immunology/about
+        verified_at: 2026-09-16
+      - name: independent_predatory_database_check
+        status: pending_manual_verification
+        source: https://thinkchecksubmit.org/
+      - name: DOAJ_or_indexing_check
+        status: pending_manual_verification
+        source: https://doaj.org/
+    overall: pending_manual_verification

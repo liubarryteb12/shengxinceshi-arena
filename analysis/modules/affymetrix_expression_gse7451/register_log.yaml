@@ -1,0 +1,21 @@
+schema_version: "1.0"
+module_id: affymetrix_expression_gse7451
+registered_at: 2026-09-16
+registered_by: agent
+user_confirmation: received
+review_status: static_review_pending
+status: registered
+source_design: analysis/modules/_drafts/GSE7451_design.yaml
+steps:
+  - module_id: input_integrity_and_sample_check
+    status: registered
+  - module_id: affymetrix_rma
+    status: registered
+  - module_id: absent_probe_filtering
+    status: registered
+  - module_id: limma_differential_expression
+    status: registered
+  - module_id: pathway_enrichment
+    status: registered
+notes:
+  - 多角色复审需要在脚本初版生成后执行；当前不将静态检查写成多模型通过。

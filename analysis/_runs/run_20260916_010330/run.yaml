@@ -1,0 +1,9 @@
+schema_version: "1.0"
+run_id: run_20260916_010330
+dataset_id: GSE7451
+module_id: affymetrix_expression_gse7451
+status: completed_with_NA
+execution_backend: local
+input_mode: matrix_only
+current_step: 5
+manifest: analysis/outputs/affymetrix_expression_gse7451/manifest.yaml

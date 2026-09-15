@@ -1,0 +1,10 @@
+schema_version: "1.0"
+status: partial
+checks:
+  NC-1: {verdict: N/A, detail: research question response requires target story confirmation}
+  NC-2: {verdict: fail, detail: single-cohort evidence and no independent validation}
+  NC-3: {verdict: pass, detail: discussion begins from P1 boundary}
+  NC-4: {verdict: pass, detail: result sections are ordered}
+  NC-5: {verdict: pass, detail: Figure 1 has a purpose statement}
+  NC-6: {verdict: pass, detail: abstract begins from the P1 evidence boundary}
+  NC-7: {verdict: pass, detail: no new results are introduced in discussion}

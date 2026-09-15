@@ -6,9 +6,10 @@
 
 - **Repository**：`shengxinceshi-arena`
 - **形态**：本地 Git repository（已初始化；当前分支 `main`）
-- **当前里程碑**：M1 · 骨架立起
-- **当前轮次**：第 1 轮 · 目录树、接口定义、空规则登记
-- **执行后端**：local（GitHub Actions 作为可选后端，尚未启用）
+- **当前里程碑**：M3 · P1→P4 接口闭环已验证
+- **P1 本地验证**：`matrix_only` 已完成，状态 `completed_with_NA`；仅用于下游接口验证，不替代 raw-CEL 证据
+- **P2/P3/P4**：P2 已生成 L1 探索性稿件；P3 已生成通用安全投稿包；P4-b 已生成带来源/时间/未确认项的候选期刊评估，均保留 `partial`
+- **长任务后端**：GitHub Actions；真实 `full_raw` workflow 已写入 `.github/workflows/end_to_end_validation.yml`，尚待远程触发
 - **规范源**：`docs/source/`，保存用户提供的 6 个原始文本文件，原样保留
 
 ## 系统分层
@@ -57,13 +58,20 @@ scripts/                       仓库检查脚本
 python scripts/validate_workspace.py
 ```
 
-本检查只验证第 1 轮骨架和接口契约，不会下载数据、不执行生信分析，也不会虚构任何结果。
+本检查验证目录/接口契约；不会自动下载数据或执行生信分析。已完成的 P1 运行需使用 `scripts/validate_p1_outputs.py`，P1 变异护栏需使用 `scripts/guard_selftest.py`。
+
+## 执行策略
+
+在用户已确认目标、数据来源和后端后，agent 默认自主推进：自动下载、实现、运行、复审、修复和迭代，不再逐步询问“是否继续”。只有以下情况会暂停并报告：缺少不可推断的关键事实、需要用户承担不可逆/高风险操作，或远程凭据/权限阻塞。
+
+本项目已配置 GitHub Actions 作为 P1 长任务后端，远程地址为 `https://github.com/liubarryteb12/shengxinceshi-arena.git`。
 
 ## 下一步
 
-进入第 2 轮前需要用户确认：
+agent 将在不重复询问“是否继续”的前提下自主推进：
 
-1. 首个验证数据集（建议先使用基础集中的一个小数据集）；
-2. 工作空间/数据来源与是否允许下载；
-3. P4-a 研究方向包中的目标方向、证据边界和写作/排版偏好；
-4. 是否启用 GitHub Actions 作为 P1 长任务后端。
+1. 触发 GitHub Actions 的 `P1 full_raw` job，执行真实 raw-CEL RMA → 超过 75% 样本 absent 探针过滤 → limma（BH）→ 明确标注的通路兼容实现；
+2. 保存 Actions 日志、下载 manifest、checksum、QC、handoff、diff、checkpoint 和接口 artifact；
+3. 对 full_raw 与当前 matrix_only 结果做差异复核；
+4. 在目标期刊仍未确认时维持 P4-b `partial`，不填写未经核验的影响因子、分区、审稿周期或 APC；
+5. 远程 GitHub push 仍需可用的 HTTPS/SSH 凭据，凭据恢复前不擅自替用户执行不可逆远程操作。

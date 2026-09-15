@@ -1,0 +1,10 @@
+schema_version: "1.0"
+status: partial
+source_policy: only supplied specification and GEO metadata
+entries:
+  - key: GSE7451
+    source: GEO series matrix metadata
+    verified: true
+  - key: limma2015
+    source: docs/source/工作安排提示词.txt
+    verified: true

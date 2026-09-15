@@ -1,0 +1,43 @@
+{
+  "n_pass": 6,
+  "total": 6,
+  "coverage": "100%",
+  "cases": [
+    {
+      "case_id": "P1-Q1",
+      "expect_fail": true,
+      "caught": true,
+      "verdict": "pass"
+    },
+    {
+      "case_id": "P1-Q2",
+      "expect_fail": true,
+      "caught": true,
+      "verdict": "pass"
+    },
+    {
+      "case_id": "P1-Q3",
+      "expect_fail": true,
+      "caught": true,
+      "verdict": "pass"
+    },
+    {
+      "case_id": "P1-Q4",
+      "expect_fail": true,
+      "caught": true,
+      "verdict": "pass"
+    },
+    {
+      "case_id": "P1-Q5",
+      "expect_fail": true,
+      "caught": true,
+      "verdict": "pass"
+    },
+    {
+      "case_id": "P1-Q6",
+      "expect_fail": true,
+      "caught": true,
+      "verdict": "pass"
+    }
+  ]
+}

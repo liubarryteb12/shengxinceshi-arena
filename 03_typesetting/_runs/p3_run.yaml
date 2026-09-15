@@ -1,0 +1,9 @@
+schema_version: "1.0"
+run_id: p3_20260916
+status: partial
+timestamp: 2026-09-16
+p1_run_id: run_20260916_010655
+input: 02_writing/p2_to_p3_manuscript.yaml
+outputs:
+  - 03_typesetting/check_report.md
+  - 03_typesetting/output/submission_package.zip

@@ -1,15 +1,70 @@
 schema_version: "1.0"
 contract_id: p1_to_p2_evidence
 project_id: shengxinceshi_arena
-status: pending
-timestamp: null
-source_run_id: null
-evidence_boundary: unassessed
-evidence: []
-methods: []
-figures: []
-tables: []
-limitations: []
+status: partial
+timestamp: 2026-09-16
+source_run_id: run_20260916_010655
+evidence_boundary: matrix_only_validation_not_raw_evidence
+evidence:
+  - evidence_id: E001
+    partn_n_output: part1-01-output
+    module_id: affymetrix_rma
+    claim: GEO series matrix 已被读取并形成下游验证用表达矩阵；该结果不等同于本次运行执行 RMA
+    result_file: analysis/outputs/affymetrix_expression_gse7451/results/normalized_expression_matrix.csv
+    figure: analysis/outputs/affymetrix_expression_gse7451/figures/Figure_1_QC.pdf
+    parameters:
+      platform: GPL570
+      method: GEO series matrix（预处理状态继承自来源，RMA 本次 N/A）
+    suitable_for: [Methods, Results]
+    limitations: 单队列；探索性；matrix_only 模式不替代 raw CEL 验证
+  - evidence_id: E002
+    partn_n_output: part1-03-output
+    module_id: limma_differential_expression
+    claim: pSS 与 control 的差异表达结果已按 BH 方法校正
+    result_file: analysis/outputs/affymetrix_expression_gse7451/tables/differential_expression.csv
+    parameters:
+      contrast: pSS-control
+      multiple_testing: BH
+      significant_gene_count: 0
+    suitable_for: [Methods, Results]
+    limitations: 无独立外部验证
+  - evidence_id: E003
+    partn_n_output: part1-04-output
+    module_id: pathway_enrichment
+    claim: 差异表达结果进入通路富集接口；实际工具需按 manifest 表述
+    result_file: analysis/outputs/affymetrix_expression_gse7451/tables/pathway_enrichment.csv
+    parameters:
+      requested_tool: MAPPFinder
+      executed_tool: not_run
+      status: N/A_no_annotation_in_matrix_validation_mode
+    suitable_for: [Results]
+    limitations: 不得将兼容实现称为原始 MAPPFinder 结果
+methods:
+  - method_id: M001
+    module_id: affymetrix_rma
+    description: GEO series matrix（预处理状态继承自来源，RMA 本次 N/A）
+    software: affy_or_GEO_series_matrix
+  - method_id: M002
+    module_id: absent_probe_filtering
+    description: N/A_raw_MAS5_not_run_in_memory_safe_mode
+    software: affy::mas5calls_or_NA
+  - method_id: M003
+    module_id: limma_differential_expression
+    description: Moderated linear model with BH correction
+    software: limma
+figures:
+  - figure_id: Figure_1_QC
+    path: analysis/outputs/affymetrix_expression_gse7451/figures/Figure_1_QC.pdf
+    formats: [pdf, svg, png, tiff, jpg]
+    description: GSE7451 expression QC boxplot
+tables:
+  - table_id: Table_DE
+    path: analysis/outputs/affymetrix_expression_gse7451/tables/differential_expression.csv
+    description: limma differential expression results
+limitations:
+  - 单队列、10 vs 10，不能外推临床效用。
+  - 全部样本为女性。
+  - 无独立验证和实验验证。
 validation:
-  status: pending
-  checks: []
+  status: pending_mutation_test
+  checks: [input_integrity, rma, absent_filter, limma_bh, pathway_transparency, figure_five_formats]

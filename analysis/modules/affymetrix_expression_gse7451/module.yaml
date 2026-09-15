@@ -1,0 +1,68 @@
+schema_version: "1.0"
+module_id: affymetrix_expression_gse7451
+name: GSE7451 Affymetrix 表达谱基础流程
+version: 0.1.0
+status: registered
+category: microarray_expression
+dataset_id: GSE7451
+language: Python+R
+user_confirmed: true
+confirmed_at: 2026-09-16
+
+inputs:
+  - name: raw_cel_archive
+    format: tar
+    required: true
+  - name: sample_sheet
+    format: csv
+    required: true
+  - name: series_matrix
+    format: gzipped_tsv
+    required: true
+
+outputs:
+  - name: normalized_expression_matrix
+    format: csv
+    final: true
+  - name: filtered_expression_matrix
+    format: csv
+    final: true
+  - name: differential_expression_table
+    format: csv
+    final: true
+  - name: pathway_enrichment_table
+    format: csv
+    final: true
+  - name: qc_report
+    format: yaml
+    final: true
+  - name: figures
+    format: pdf/svg/png/tiff/jpg
+    final: true
+
+steps:
+  - step: 1
+    module_id: input_integrity_and_sample_check
+    tool: Python standard library
+  - step: 2
+    module_id: affymetrix_rma
+    tool: R affy::rma
+  - step: 3
+    module_id: absent_probe_filtering
+    tool: R affy::mas5calls
+    parameter: absent_probe_threshold=0.75
+  - step: 4
+    module_id: limma_differential_expression
+    tool: R limma
+    multiple_testing: BH
+  - step: 5
+    module_id: pathway_enrichment
+    requested_tool: MAPPFinder
+    compatibility_tool: limma::goana
+    rule: 实际执行工具必须写入 manifest，不得冒充 MAPPFinder
+
+reproducibility:
+  random_seed: 42
+  paths_from_config: true
+  input_checksum_required: true
+  output_manifest_required: true

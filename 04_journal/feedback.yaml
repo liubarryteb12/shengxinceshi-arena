@@ -1,6 +1,18 @@
 schema_version: "1.0"
 contract_id: feedback
-status: pending
-timestamp: null
-feedback: []
+status: partial
+timestamp: 2026-09-16
+feedback:
+  - target: P1
+    priority: high
+    issue: full_raw RMA/MAS5 run and independent validation are still pending
+    action: execute GitHub Actions full_raw, then compare with matrix_only run
+  - target: P2
+    priority: high
+    issue: claims must remain candidate/exploratory
+    action: do not use diagnostic, mechanism-confirmed or external-validation wording
+  - target: P3
+    priority: medium
+    issue: target-journal template, line numbers, font embedding and final export are pending
+    action: activate journal-specific template after journal selection
 return_targets: [P1, P2, P3]

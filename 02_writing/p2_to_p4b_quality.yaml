@@ -1,22 +1,29 @@
 schema_version: "1.0"
 contract_id: p2_to_p4b_quality
 project_id: shengxinceshi_arena
-status: pending
-timestamp: null
-manuscript_version: null
+status: partial
+timestamp: 2026-09-16
+p1_run_id: run_20260916_010655
+manuscript_version: v1
 quality_assessment:
-  narrative_completeness: null
-  evidence_consistency: null
-  method_rigor: null
-  statistical_validity: null
-  writing_quality: null
-  figure_quality: null
-  novelty: null
-  clinical_value: null
+  narrative_completeness: provisional
+  evidence_consistency: provisional
+  method_rigor: provisional
+  statistical_validity: provisional
+  writing_quality: provisional
+  figure_quality: provisional
+  novelty: not_assessed
+  clinical_value: not_assessed
 topic_assessment:
-  primary_topic: null
-  secondary_topic: null
-  potential_journals: []
-strengths: []
-weaknesses: []
-recommendations: []
+  primary_topic: 原发性干燥综合征与健康对照的唾液转录组表达差异
+  secondary_topic: 唾液基因表达候选生物标志物
+  potential_journals: [自身免疫病, 口腔医学, 生物信息学/转录组学]
+strengths:
+  - 证据锚点已写入稿件
+  - 措辞保守，没有升级为诊断或机制已证实
+weaknesses:
+  - P1 当前为 matrix_only partial run
+  - 缺少独立验证和作者声明信息
+recommendations:
+  - 等待 full_raw P1 结果后生成 L2
+  - 目标期刊确定后核对结构、摘要、参考文献和声明

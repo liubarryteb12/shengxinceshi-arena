@@ -1,0 +1,18 @@
+schema_version: "1.0"
+review_id: review_run_20260916_010655_p2
+manuscript_version: v1
+timestamp: 2026-09-16
+status: pending_agent_review
+models:
+  - role: domain_expert
+    status: pending
+  - role: methodologist
+    status: pending
+  - role: statistician
+    status: pending
+  - role: journal_editor
+    status: pending
+summary:
+  total_major: null
+  total_minor: null
+  overall: pending

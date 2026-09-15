@@ -1,35 +1,99 @@
 name: P1-P4 End-to-End Validation
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       dataset_id:
-        description: GEO dataset ID, for example GSE7451
+        description: GEO dataset ID (the current executable module is scoped to GSE7451)
         required: true
+        default: GSE7451
         type: string
-      dataset_stage:
-        description: basic or advanced
-        required: true
-        default: basic
-        type: choice
-        options: [basic, advanced]
-      enable_analysis:
-        description: Enable the P1 execution job after Round 2 is implemented
-        required: true
-        default: false
-        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p1-full-raw-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  skeleton_gate:
+  p1_full_raw:
+    name: P1 full_raw on GitHub Actions
     runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      TZ: Asia/Shanghai
+      DATASET_ID: ${{ inputs.dataset_id || 'GSE7451' }}
+      R_LIBS_USER: ${{ github.workspace }}/.r-library
+      P1_EXECUTION_BACKEND: github_actions
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Validate repository skeleton
-        run: python scripts/validate_workspace.py
-      - name: Report current implementation boundary
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Python workflow dependencies
+        run: python -m pip install --upgrade pip pyyaml python-docx matplotlib pillow
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.5.0'
+          use-public-rspm: true
+      - name: Install R and Bioconductor dependencies
+        shell: bash
         run: |
-          echo "dataset_id=${{ inputs.dataset_id }}"
-          echo "dataset_stage=${{ inputs.dataset_stage }}"
-          echo "enable_analysis=${{ inputs.enable_analysis }}"
-          echo "P1 execution is intentionally gated until Round 2 is completed."
+          mkdir -p "$R_LIBS_USER"
+          Rscript - <<'RSCRIPT'
+          options(repos = c(CRAN = "https://cloud.r-project.org"))
+          if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+          BiocManager::install(c("jsonlite", "affy", "limma", "Biobase", "AnnotationDbi", "hgu133plus2.db", "org.Hs.eg.db"), ask = FALSE, update = FALSE, Ncpus = 2)
+          RSCRIPT
+      - name: Download GSE7451 from NCBI GEO and record checksums
+        run: python scripts/download_geo.py --dataset "$DATASET_ID" --output inputs/raw
+      - name: Rebuild and validate the GEO sample sheet
+        run: |
+          python scripts/prepare_geo_metadata.py \
+            --dataset-id "$DATASET_ID" \
+            --matrix "inputs/raw/$DATASET_ID/metadata/${DATASET_ID}_series_matrix.txt.gz" \
+            --raw-tar "inputs/raw/$DATASET_ID/${DATASET_ID}_RAW.tar" \
+            --output-dir "inputs/metadata/$DATASET_ID" \
+            --source-url "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=$DATASET_ID"
+      - name: Execute the confirmed P1 full_raw pipeline
+        run: |
+          python scripts/run_p1.py --workspace . --dataset "$DATASET_ID" --mode full_raw \
+            --pipeline 'RMA -> >75% absent probe filter -> limma (BH) -> pathway enrichment'
+      - name: Validate P1 output contracts
+        run: python scripts/validate_p1_outputs.py --workspace .
+      - name: Run P1 mutation guard self-test
+        run: python scripts/guard_selftest.py
+      - name: Generate P2 evidence-anchored L1 package
+        run: python scripts/run_p2.py --workspace .
+      - name: Generate P3 export package
+        run: python scripts/run_p3.py --workspace .
+      - name: Generate P4 provisional journal review
+        run: python scripts/run_p4.py --workspace .
+      - name: Validate the P1-to-P4 interface chain
+        run: python scripts/validate_end_to_end.py --workspace .
+      - name: Upload end-to-end evidence artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: shengxinceshi-arena-${{ env.DATASET_ID }}-${{ github.run_id }}
+          retention-days: 30
+          if-no-files-found: error
+          path: |
+            analysis/_runs/
+            analysis/_index/p1_to_p2_evidence.yaml
+            analysis/_index/p1_to_p4_quality.yaml
+            analysis/outputs/affymetrix_expression_gse7451/manifest.yaml
+            analysis/outputs/affymetrix_expression_gse7451/results/
+            analysis/outputs/affymetrix_expression_gse7451/tables/
+            analysis/outputs/affymetrix_expression_gse7451/figures/
+            analysis/outputs/affymetrix_expression_gse7451/records/
+            analysis/outputs/affymetrix_expression_gse7451/run/summary.json
+            inputs/metadata/$DATASET_ID/
+            02_writing/
+            03_typesetting/
+            04_journal/
