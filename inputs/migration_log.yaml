@@ -1,17 +1,50 @@
 schema_version: "1.0"
-status: pending
+status: success
 network_download_authorization: granted
 authorized_at: 2026-09-16
 authorized_by: user
-migration_id: null
-timestamp: null
-method: copy
-sources: []
+dataset_id: GSE7451
+migration_id: mig_GSE7451_20260916
+timestamp: 2026-09-16
+method: download
+source: NCBI GEO FTP
+
+sources:
+  - source_url: https://ftp.ncbi.nlm.nih.gov/geo/series/GSE7nnn/GSE7451/suppl/GSE7451_RAW.tar
+    target_path: inputs/raw/GSE7451/GSE7451_RAW.tar
+    size_bytes: 84531200
+    checksum: sha256:ef67277d63686429d14276b8dadfd7a6e70a24172ff0ffbdbbea6cade35bfe12
+    status: success
+    archive_members: 40
+    cel_members: 20
+    chp_members: 20
+  - source_url: https://ftp.ncbi.nlm.nih.gov/geo/series/GSE7nnn/GSE7451/matrix/GSE7451_series_matrix.txt.gz
+    target_path: inputs/raw/GSE7451/metadata/GSE7451_series_matrix.txt.gz
+    size_bytes: 4164007
+    checksum: sha256:b20ec3e3825e4eff97bffd41cd8ba18fd663ac6a180aa16d8e385ca6712b0a92
+    status: success
+  - source_url: https://ftp.ncbi.nlm.nih.gov/geo/series/GSE7nnn/GSE7451/suppl/filelist.txt
+    target_path: inputs/raw/GSE7451/metadata/GSE7451_filelist.txt
+    size_bytes: 2231
+    checksum: sha256:49514c6901544a94b48c18e4ad67b2a6ffb286f5d22cc0887fc072ae36371530
+    status: success
+
 summary:
-  total_files: 0
-  success: 0
+  total_downloaded_files: 3
+  success: 3
   failed: 0
-  warnings: []
+  warnings:
+    - 原始 tar 保留为归档，尚未解包；当前元数据检查使用 GEO series matrix。
+    - 统计分析前需确认 R/Bioconductor 环境与是否直接使用原始 CEL。
+
+validation:
+  file_exists: pass
+  checksum_recorded: pass
+  archive_member_listing: pass
+  sample_metadata_parsed: pass
+  sample_count: 20
+  group_balance: pass
+
 notes:
-  - 尚未提供原始数据地址。
-  - 原始数据默认复制并保持只读。
+  - 原始数据未修改。
+  - inputs/raw/ 默认不纳入 Git；checksum 与元数据清单纳入 Git。

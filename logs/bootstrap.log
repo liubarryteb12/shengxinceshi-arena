@@ -4,3 +4,6 @@
 2026-09-16 | no dataset downloaded | awaiting user confirmation
 2026-09-16 | round 1 skeleton validation | PASS | M1 completed
 2026-09-16 | user authorized network data download | dataset selection pending
+2026-09-16 | dataset selected | GSE7451 | download preparation started
+2026-09-16 | GSE7451 download and metadata validation | PASS | 20 samples, 10 control, 10 pSS
+2026-09-16 | P4-a direction package drafted | awaiting user confirmation before P1 execution

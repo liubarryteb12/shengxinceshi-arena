@@ -1,8 +1,67 @@
 schema_version: "1.0"
-status: pending
+status: success
 project_id: shengxinceshi_arena
-timestamp: null
-inputs: []
-available_analyses: []
-unavailable_analyses: []
-recommendations: []
+dataset_id: GSE7451
+timestamp: 2026-09-16
+source:
+  geo_series_url: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE7451
+  ftp_root: https://ftp.ncbi.nlm.nih.gov/geo/series/GSE7nnn/GSE7451/
+  series_matrix: inputs/raw/GSE7451/metadata/GSE7451_series_matrix.txt.gz
+  sample_sheet: inputs/metadata/GSE7451/GSE7451_samples.csv
+
+data:
+  type: microarray_expression
+  organism: Homo sapiens
+  platform: GPL570
+  platform_description: Affymetrix Human Genome U133 Plus 2.0
+  study_title: Primary Sjogren's syndrome and control whole saliva
+  series_type: Expression profiling by array
+  raw_archive: inputs/raw/GSE7451/GSE7451_RAW.tar
+  raw_archive_sha256: sha256:ef67277d63686429d14276b8dadfd7a6e70a24172ff0ffbdbbea6cade35bfe12
+  matrix_sha256: sha256:b20ec3e3825e4eff97bffd41cd8ba18fd663ac6a180aa16d8e385ca6712b0a92
+
+samples:
+  total: 20
+  groups:
+    control: 10
+    pSS: 10
+  balanced: true
+  all_same_organism: true
+  sex_distribution: female_only
+  age_available: true
+  clinical_followup_available: false
+
+available_analyses:
+  - id: affymetrix_rma
+    status: candidate
+    basis: 原始 CEL 文件已下载，平台为 GPL570
+  - id: limma_differential_expression
+    status: candidate
+    basis: 两组样本标签已解析，10 vs 10
+  - id: pca
+    status: candidate
+    basis: 表达矩阵可用
+  - id: heatmap
+    status: candidate
+    basis: 表达矩阵可用
+  - id: pathway_enrichment
+    status: candidate
+    basis: 差异表达结果可作为下游输入
+
+unavailable_analyses:
+  - id: survival_analysis
+    reason: 当前样本元数据未提供随访/生存终点
+  - id: qrt_pcr_validation
+    reason: 当前下载包未包含独立实验验证数据；P1 不擅自生成验证
+  - id: external_validation
+    reason: 当前仅有 GSE7451 单队列，未提供独立验证队列
+
+warnings:
+  - 样本量为 10 vs 10，适合基础闭环验证，但不应自动外推临床效用。
+  - 全部样本为女性；性别效应无法在本数据集中评估。
+  - 需在执行 RMA 前确认 Bioconductor 包和 GPL570 注释环境。
+
+recommendations:
+  - 先确认 P4-a 方向包，再注册 RMA → limma → pathway enrichment 流程。
+  - 先做输入完整性和样本标签校验，再执行差异表达。
+  - 所有结果保留参数、软件版本、随机种子和 checksum。

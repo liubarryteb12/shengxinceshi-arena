@@ -6,9 +6,9 @@ repo_kind: local_git
 created_at: 2026-09-16
 timezone: Asia/Shanghai
 created_by: arena-agent
-status: skeleton_ready
+status: p4a_draft_pending_confirmation
 milestone: M1
-build_round: 1
+build_round: 2
 
 source_specifications:
   directory: docs/source/
@@ -26,7 +26,7 @@ network:
   authorized_by: user
   authorized_at: 2026-09-16
   source_policy: NCBI GEO FTP or another user-approved source
-  dataset_selection: pending
+  dataset_selection: GSE7451
 
 execution:
   backend: local
@@ -45,13 +45,16 @@ rules:
   mutation_required_for_a_rules: true
 
 rounds:
-  current: 1
-  next: 2
+  current: 2
+  next: 3
   completed:
     - round: 1
       status: completed
       deliverable: skeleton_and_contracts
-  pending:
     - round: 2
+      status: in_progress
+      deliverable: GSE7451_metadata_and_p4a_draft
+  pending:
+    - round: 3
       status: pending
       deliverable: p1_minimum_closed_loop

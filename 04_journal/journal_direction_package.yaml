@@ -1,63 +1,100 @@
 schema_version: "1.0"
 contract_id: journal_direction_package
-package_id: null
-timestamp: null
+package_id: jdp_GSE7451_20260916
+timestamp: 2026-09-16
 stage: P4-a
 status: draft
+confirmation_required: true
 confirmed_by: null
 confirmed_at: null
 
 topic_judgment:
-  primary_topic: null
-  secondary_topic: null
-  study_type: null
-  novelty_level: null
-  data_type: null
-  sample_size: null
-  basis: []
+  primary_topic: 原发性干燥综合征（pSS）与健康对照的唾液转录组表达差异
+  secondary_topic: 唾液基因表达候选生物标志物
+  study_type: Affymetrix 微阵列表达谱分析（无独立实验验证输入）
+  novelty_level: not_assessed
+  data_type: microarray_expression
+  sample_size: 20（10 control vs 10 pSS）
+  basis:
+    - source: inputs/raw/GSE7451/metadata/GSE7451_series_matrix.txt.gz
+      observation: GEO 元数据记录 20 个样本、10 个 control 和 10 个 pSS patient
+    - source: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE7451
+      observation: 数据集题目、平台和样本元数据
+    - source: docs/source/工作安排提示词.txt
+      observation: 指定 RMA、75% absent 探针过滤、limma 和 MAPPFinder 思路
 
 journal_direction:
-  candidate_directions: []
-  target_tier: null
-  likely_publishers: []
-  excluded: []
+  candidate_directions:
+    - 自身免疫病 / 干燥综合征
+    - 口腔医学 / 唾液生物标志物
+    - 生物信息学 / 转录组学
+  target_tier: 待确认
+  likely_publishers:
+    - 待确认（需联网核对具体期刊 Guide for Authors）
+  excluded:
+    - direction: 泛综合高影响力期刊
+      reason: 当前数据包为单队列、样本量 10 vs 10，暂未包含独立验证或实验验证；仅作方向性不优先判断，须用户确认
 
 analysis_requirements:
-  required_modules: []
-  optional_modules: []
-  minimum_evidence: []
-  data_requirements: []
+  required_modules:
+    - input_integrity_and_sample_check
+    - affymetrix_rma
+    - absent_probe_filtering
+    - limma_differential_expression
+    - pathway_enrichment
+  optional_modules:
+    - pca
+    - heatmap
+    - clustering
+  minimum_evidence:
+    - 输入 checksum 和样本分组校验
+    - RMA 标准化矩阵
+    - limma 差异表达表与多重校正记录
+    - 至少一项通路富集结果
+    - manifest、QC、handoff、checkpoint 和下一步任务清单
+  data_requirements:
+    - GSE7451 原始 CEL 或可追溯的 series matrix
+    - GPL570 平台注释
+    - 20 个样本的 control/pSS 分组表
 
 writing_constraints:
-  structure: null
-  abstract_type: null
-  abstract_limit: null
-  keywords_count: null
-  reference_style: null
-  reference_limit: null
-  figure_limit: null
-  table_limit: null
-  language: null
-  audience: null
-  story_type: null
-  evidence_boundary: null
+  structure: 待确认
+  abstract_type: 待确认
+  abstract_limit: 待确认
+  keywords_count: 待确认
+  reference_style: 待确认
+  reference_limit: 待确认
+  figure_limit: 待确认
+  table_limit: 待确认
+  language: English（待确认）
+  audience: 生信 / 口腔医学 / 自身免疫交叉（待确认）
+  story_type: data-driven
+  evidence_boundary: 候选 / 探索性，不得升级为临床效用或机制已证实
 
 typesetting_constraints:
-  publisher_system: null
-  template: null
-  line_spacing: null
-  line_numbers: null
-  figure_width_single: null
-  figure_width_double: null
-  figure_format: null
+  publisher_system: 待确认
+  template: 通用安全格式（目标期刊确定后切换）
+  line_spacing: double（审稿版）/ 1.5（安全版）
+  line_numbers: required（审稿版）
+  figure_width_single: 85 mm
+  figure_width_double: 160 mm
+  figure_format: five
 
-risks: []
-uncertainties: []
+risks:
+  - 单队列且样本量为 10 vs 10，结果定位为探索性。
+  - 当前元数据未提供独立外部验证队列。
+  - 当前下载内容未包含 qRT-PCR 或其他实验验证输入。
+  - 目标期刊未定，期刊级别和格式约束不能提前假定。
+uncertainties:
+  - 用户希望优先突出疾病方向、唾液标志物还是方法学流程。
+  - 是否确认完整执行 RMA → absent 过滤 → limma → 通路富集。
+  - 通路富集的 MAPPFinder 环境是否可用。
+  - 目标期刊、预算、开放获取偏好和截止时间。
 pending_items:
-  - 研究想法
-  - 数据概况
-  - 初步结果
-  - 目标方向与层级
+  - 用户确认 P4-a 题材和候选方向
+  - 用户确认 P1 分析模块与顺序
+  - 目标期刊或期刊层级
   - 证据边界
   - 写作约束
   - 排版约束
+  - 通路富集实现选择

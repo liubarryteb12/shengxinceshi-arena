@@ -1,0 +1,79 @@
+schema_version: "1.0"
+design_id: design_GSE7451_20260916
+dataset_id: GSE7451
+timestamp: 2026-09-16
+status: pending_user_confirmation
+source_spec: docs/source/工作安排提示词.txt
+user_request: 按 GSE7451 对应论文的分析思路验证 P1-P4 最小闭环，不做自定义分析。
+
+interpretation:
+  module_id: affymetrix_expression_gse7451
+  name: GSE7451 Affymetrix 表达谱基础流程
+  category: microarray_expression
+  description: RMA 预处理、探针过滤、limma 差异表达和通路富集的可复现流程
+  platform: GPL570
+  groups:
+    - control
+    - pSS
+
+proposed:
+  language: R
+  language_reason: GEO/affy/limma/Bioconductor 生态与对应论文方法一致
+  inputs:
+    - name: raw_cel_archive
+      format: tar
+      path: inputs/raw/GSE7451/GSE7451_RAW.tar
+      required: true
+    - name: sample_sheet
+      format: csv
+      path: inputs/metadata/GSE7451/GSE7451_samples.csv
+      required: true
+    - name: series_matrix
+      format: gzipped_tsv
+      path: inputs/raw/GSE7451/metadata/GSE7451_series_matrix.txt.gz
+      required: true
+  outputs:
+    - name: normalized_expression_matrix
+      format: csv
+      is_final: true
+    - name: differential_expression_table
+      format: csv
+      is_final: true
+    - name: pathway_enrichment_table
+      format: csv
+      is_final: true
+    - name: qc_report
+      format: yaml
+      is_final: true
+    - name: figures
+      format: pdf_svg_png_tiff_jpg
+      is_final: true
+  parameters:
+    random_seed: 42
+    absent_probe_threshold: 0.75
+    multiple_testing: BH
+  steps:
+    - step: 1
+      description: 解包/读取 CEL 并执行 RMA（背景校正、分位数标准化、汇总）
+      tool: R affy / Bioconductor
+    - step: 2
+      description: 按论文思路过滤超过 75% 样本 absent 的探针集
+      tool: R
+    - step: 3
+      description: pSS vs control 差异表达
+      tool: R limma
+    - step: 4
+      description: 通路富集（论文对应 MAPPFinder；具体可执行实现需环境确认）
+      tool: R / pathway tool
+    - step: 5
+      description: 按 P3 安全规格输出图表和记录
+      tool: R ggplot2 / export tools
+
+uncertainties:
+  - MAPPFinder 具体版本和可复现替代实现尚未确定。
+  - 当前数据包是否直接解包 CEL 还是使用 series matrix，需要用户/流程确认。
+  - 目标期刊和证据边界尚未确认。
+
+questions_for_user:
+  - 是否确认按上述 RMA → absent 过滤 → limma → 通路富集顺序执行？
+  - 通路富集若原始 MAPPFinder 环境不可用，是否允许使用可追溯的兼容实现？
