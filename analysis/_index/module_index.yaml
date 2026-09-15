@@ -1,5 +1,37 @@
 schema_version: "1.0"
-status: skeleton
-modules: []
+status: registered
+dataset_id: GSE7451
+modules:
+  - module_id: input_integrity_and_sample_check
+    name: 输入完整性与样本分组检查
+    category: preprocessing
+    language: Python
+    version: 0.1.0
+    status: registered
+  - module_id: affymetrix_rma
+    name: Affymetrix RMA 预处理
+    category: preprocessing
+    language: R
+    version: 0.1.0
+    status: registered
+  - module_id: absent_probe_filtering
+    name: absent 探针过滤
+    category: preprocessing
+    language: R
+    version: 0.1.0
+    status: registered
+  - module_id: limma_differential_expression
+    name: limma 差异表达
+    category: differential_expression
+    language: R
+    version: 0.1.0
+    status: registered
+  - module_id: pathway_enrichment
+    name: 通路富集
+    category: enrichment
+    language: R
+    version: 0.1.0
+    status: registered
 notes:
-  - 模块注册将在第 2 轮、用户确认数据集和分析目标后进行。
+  - 模块已按用户确认的论文流程注册，尚未执行。
+  - 通路富集具体实现需要在运行环境中记录；不得把兼容实现写成 MAPPFinder 原始结果。

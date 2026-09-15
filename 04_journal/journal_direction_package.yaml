@@ -3,10 +3,10 @@ contract_id: journal_direction_package
 package_id: jdp_GSE7451_20260916
 timestamp: 2026-09-16
 stage: P4-a
-status: draft
-confirmation_required: true
-confirmed_by: null
-confirmed_at: null
+status: confirmed
+confirmation_required: false
+confirmed_by: user
+confirmed_at: 2026-09-16
 
 topic_judgment:
   primary_topic: 原发性干燥综合征（pSS）与健康对照的唾液转录组表达差异

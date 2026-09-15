@@ -6,7 +6,7 @@ repo_kind: local_git
 created_at: 2026-09-16
 timezone: Asia/Shanghai
 created_by: arena-agent
-status: p4a_draft_pending_confirmation
+status: p1_ready_github_actions
 milestone: M1
 build_round: 2
 
@@ -29,12 +29,15 @@ network:
   dataset_selection: GSE7451
 
 execution:
-  backend: local
+  backend: github_actions
+  local_agent: true
   github_actions:
-    enabled: false
-    repo: null
+    enabled: true
+    repo: liubarryteb12/shengxinceshi-arena
+    remote_url: https://github.com/liubarryteb12/shengxinceshi-arena.git
     branch: main
     workflow: .github/workflows/end_to_end_validation.yml
+    data_source: NCBI GEO FTP
 
 rules:
   inputs_readonly: true
@@ -53,7 +56,7 @@ rounds:
       deliverable: skeleton_and_contracts
     - round: 2
       status: in_progress
-      deliverable: GSE7451_metadata_and_p4a_draft
+      deliverable: GSE7451_metadata_p4a_confirmation_and_github_actions
   pending:
     - round: 3
       status: pending

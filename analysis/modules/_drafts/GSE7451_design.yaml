@@ -2,8 +2,10 @@ schema_version: "1.0"
 design_id: design_GSE7451_20260916
 dataset_id: GSE7451
 timestamp: 2026-09-16
-status: pending_user_confirmation
+status: confirmed
 source_spec: docs/source/工作安排提示词.txt
+confirmed_by: user
+confirmed_at: 2026-09-16
 user_request: 按 GSE7451 对应论文的分析思路验证 P1-P4 最小闭环，不做自定义分析。
 
 interpretation:

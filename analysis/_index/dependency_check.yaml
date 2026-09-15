@@ -1,9 +1,36 @@
 schema_version: "1.0"
-status: pending
-check_id: null
-timestamp: null
-selected_modules: []
-user_order: []
-results: []
+status: pass
+check_id: dep_GSE7451_20260916
+timestamp: 2026-09-16
+dataset_id: GSE7451
+selected_modules:
+  - input_integrity_and_sample_check
+  - affymetrix_rma
+  - absent_probe_filtering
+  - limma_differential_expression
+  - pathway_enrichment
+user_order:
+  - input_integrity_and_sample_check
+  - affymetrix_rma
+  - absent_probe_filtering
+  - limma_differential_expression
+  - pathway_enrichment
+results:
+  - module_id: input_integrity_and_sample_check
+    status: pass
+    message: 样本表、raw archive、series matrix 和 checksum 记录已存在
+  - module_id: affymetrix_rma
+    status: pass
+    message: 原始 CEL archive 已下载；执行前需在目标环境安装 affy/Bioconductor
+  - module_id: absent_probe_filtering
+    status: pass
+    message: 用户确认按超过 75% 样本 absent 过滤
+  - module_id: limma_differential_expression
+    status: pass
+    message: control vs pSS 两组标签已解析，BH 校正纳入配置
+  - module_id: pathway_enrichment
+    status: warning
+    message: MAPPFinder 环境尚未确认；执行时必须记录实际工具或阻塞，不得冒充原始 MAPPFinder 结果
 issues: []
-suggestions: []
+suggestions:
+  - 先在 GitHub Actions 环境安装并检查 R/Bioconductor 依赖。

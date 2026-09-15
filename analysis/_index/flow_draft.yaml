@@ -1,13 +1,65 @@
 schema_version: "1.0"
-status: pending
-draft_id: null
-timestamp: null
+draft_id: flow_GSE7451_20260916
+timestamp: 2026-09-16
 project_id: shengxinceshi_arena
-execution_backend: local
-flow: []
+status: completed
+confirmed_by: user
+confirmed_at: 2026-09-16
+execution_backend: github_actions
+flow:
+  - step: 1
+    module_id: input_integrity_and_sample_check
+    name: 输入完整性与样本分组检查
+    language: Python
+    inputs:
+      - inputs/raw/GSE7451/GSE7451_RAW.tar
+      - inputs/raw/GSE7451/metadata/GSE7451_series_matrix.txt.gz
+      - inputs/metadata/GSE7451/GSE7451_samples.csv
+    outputs:
+      - analysis/outputs/input_integrity_and_sample_check
+    depends_on: []
+  - step: 2
+    module_id: affymetrix_rma
+    name: Affymetrix RMA 预处理
+    language: R
+    inputs:
+      - inputs/raw/GSE7451/GSE7451_RAW.tar
+      - inputs/metadata/GSE7451/GSE7451_samples.csv
+    outputs:
+      - part1-01-output
+    depends_on: [input_integrity_and_sample_check]
+  - step: 3
+    module_id: absent_probe_filtering
+    name: absent 探针过滤
+    language: R
+    inputs:
+      - part1-01-output
+    outputs:
+      - part1-02-output
+    depends_on: [affymetrix_rma]
+  - step: 4
+    module_id: limma_differential_expression
+    name: limma 差异表达
+    language: R
+    inputs:
+      - part1-02-output
+      - inputs/metadata/GSE7451/GSE7451_samples.csv
+    outputs:
+      - part1-03-output
+    depends_on: [absent_probe_filtering]
+  - step: 5
+    module_id: pathway_enrichment
+    name: 通路富集
+    language: R
+    inputs:
+      - part1-03-output
+    outputs:
+      - part1-04-output
+    depends_on: [limma_differential_expression]
 summary:
-  total_steps: 0
-  languages: []
-  estimated_runtime: null
-  estimated_outputs: 0
-warnings: []
+  total_steps: 5
+  languages: [Python, R]
+  estimated_runtime: 60min
+  estimated_outputs: 4
+warnings:
+  - pathway_enrichment 的工具实现需在运行日志中明确记录。
