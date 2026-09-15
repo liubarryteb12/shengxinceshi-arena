@@ -1,5 +1,8 @@
 schema_version: "1.0"
 status: pending
+network_download_authorization: granted
+authorized_at: 2026-09-16
+authorized_by: user
 migration_id: null
 timestamp: null
 method: copy

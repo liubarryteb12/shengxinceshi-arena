@@ -21,6 +21,13 @@ source_specifications:
     - P4纲要.txt
     - 工作安排提示词.txt
 
+network:
+  download_allowed: true
+  authorized_by: user
+  authorized_at: 2026-09-16
+  source_policy: NCBI GEO FTP or another user-approved source
+  dataset_selection: pending
+
 execution:
   backend: local
   github_actions:
