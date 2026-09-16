@@ -107,7 +107,7 @@ def main() -> int:
             raise SystemExit(f"Smoke R pipeline failed; see {log_path}")
 
     summary = json.loads((run_dir / "summary.json").read_text(encoding="utf-8"))
-    outputs = [result_dir / "normalized_expression_matrix.csv", result_dir / "filtered_expression_matrix.csv", table_dir / "probe_detection_summary.csv", table_dir / "differential_expression.csv", table_dir / "pathway_enrichment.csv"]
+    outputs = [result_dir / "normalized_expression_matrix.csv", result_dir / "filtered_expression_matrix.csv", result_dir / "GSE77459_smoke_report.pdf", table_dir / "probe_detection_summary.csv", table_dir / "differential_expression.csv", table_dir / "pathway_enrichment.csv"]
     figures = sorted(figure_dir.glob("Figure_1_QC.*"))
     if not all(p.exists() for p in outputs) or {p.suffix.lower().lstrip('.') for p in figures} != {"pdf", "svg", "png", "tiff", "jpg"}:
         raise SystemExit("Smoke output completeness check failed")
