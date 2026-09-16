@@ -40,3 +40,4 @@ GSE77459 是 Gene ST 平台，不能把 MAS5 present/absent calls 静默套用�
 - `scripts/validate_smoke_p1.py`
 - `analysis/modules/affymetrix_expression_gse7451/scripts/r/run_affy_st_smoke.R`
 - `.github/workflows/smoke_gse77459.yml`
+- Smoke PDF report: `analysis/outputs/gse77459_smoke/results/GSE77459_smoke_report.pdf`

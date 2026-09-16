@@ -33,6 +33,14 @@ jobs:
           r-version: '4.5.0'
           use-public-rspm: true
 
+      - name: Install system libraries for R packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libcurl4-openssl-dev libpng-dev libxml2-dev libssl-dev \
+            libfontconfig1-dev libfreetype6-dev libharfbuzz-dev libfribidi-dev \
+            libtiff-dev libjpeg-dev libgit2-dev
+
       - name: Install ST-array R/Bioconductor dependencies
         shell: bash
         run: |
@@ -40,17 +48,15 @@ jobs:
           Rscript - <<'RSCRIPT'
           options(repos = c(CRAN = "https://cloud.r-project.org"))
           if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
-          BiocManager::install(
-            c("jsonlite", "oligo", "limma", "Biobase", "AnnotationDbi",
-              "pd.hugene.2.1.st", "hugene21sttranscriptcluster.db", "org.Hs.eg.db"),
-            ask = FALSE,
-            update = FALSE,
-            Ncpus = 2
-          )
+          required <- c("jsonlite", "oligo", "limma", "Biobase", "AnnotationDbi",
+                        "pd.hugene.2.1.st", "hugene21sttranscriptcluster.db", "org.Hs.eg.db")
+          BiocManager::install(required, ask = FALSE, update = FALSE, Ncpus = 2)
+          missing <- required[!vapply(required, requireNamespace, logical(1), quietly = TRUE)]
+          if (length(missing) > 0) stop(paste("R dependency installation incomplete:", paste(missing, collapse = ", ")))
           RSCRIPT
 
       - name: Download GSE77459 and record checksums
-        run: python scripts/download_geo_lightweight.py --dataset GSE77459 --output inputs/raw
+        run: python scripts/download_geo.py --dataset GSE77459 --output inputs/raw
 
       - name: Prepare and validate the 6-versus-6 sample sheet
         run: |
@@ -67,6 +73,7 @@ jobs:
         run: python scripts/validate_smoke_p1.py --workspace .
 
       - name: Upload GSE77459 smoke artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: gse77459-smoke-${{ github.run_id }}

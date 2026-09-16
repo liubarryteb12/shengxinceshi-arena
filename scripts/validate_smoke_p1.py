@@ -47,6 +47,8 @@ def main() -> int:
         check("platform boundary", "not MAS5" in str(summary.get("absent_filter_method")), str(summary.get("absent_filter_method")))
     else:
         failures += 1
+    report_pdf = out / "results/GSE77459_smoke_report.pdf"
+    check("smoke report PDF", report_pdf.exists() and report_pdf.stat().st_size > 0, str(report_pdf))
     formats = {p.suffix.lower().lstrip(".") for p in (out / "figures").glob("Figure_1_QC.*")}
     check("Figure_1_QC five formats", formats == {"pdf", "svg", "png", "tiff", "jpg"}, str(sorted(formats)))
     manifest_path = out / "manifest.yaml"
